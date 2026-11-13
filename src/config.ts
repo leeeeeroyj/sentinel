@@ -183,3 +183,16 @@ export const KIND_COLORS = {
   colonist: [0xff4d6d, 0xffffff],
   mine: [0xffc04d, 0xffffff],
 } as const;
+
+/**
+ * Touch controls (src/touch.ts): a fly stick under the left thumb, FIRE and PULSE under the right. They sit in the
+ * bars beside the game when those are wide enough, otherwise over its bottom corners at these spots (design pixels,
+ * as in the concept mockup). A touch within `grab` × radius of a control takes it.
+ */
+export const TOUCH = {
+  stick: { x: 48, y: 174, r: 24 },
+  fire: { x: 382, y: 176, r: 16 },
+  pulse: { x: 342, y: 198, r: 11 },
+  grab: 1.6,
+  deadzone: 0.15,
+};

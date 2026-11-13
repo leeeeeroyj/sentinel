@@ -10,6 +10,7 @@ import {
   canFire, createHostile, fuse, release, tickFire, updateHound, updateHusk, updateMinelayer, updateSnatcher, type Hostile, type HostileKind,
 } from '../entities/hostile';
 import { Effects } from '../effects';
+import { touchControls } from '../touch';
 import { playSound, toggleMute, type SoundName } from '../sfx';
 import { bonusFor, firePaceOf, minelayersIn, paceOf, restores, snatchersIn } from '../waves';
 import { fitCamera } from '../view';
@@ -152,7 +153,11 @@ export class RingScene extends Phaser.Scene {
     this.banner = { title: bannerText(84, 16, TEXT.amber), sub: bannerText(102, 8, TEXT.ink), life: 0 };
     this.startWave(1);
     this.scene.launch('hud');
-    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.scene.stop('hud'));
+    touchControls.show(true);
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+      this.scene.stop('hud');
+      touchControls.show(false);
+    });
   }
 
   update(_time: number, delta: number) {
@@ -578,6 +583,7 @@ export class RingScene extends Phaser.Scene {
     c.down = LIFE.respawnDelay;
     if (this.ships === 0) {
       this.over = 0;
+      touchControls.show(false);
       this.time.delayedCall(900, () => this.sfx('gameOver'));
     }
   }

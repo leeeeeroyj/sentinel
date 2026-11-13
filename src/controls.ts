@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { touchControls } from './touch';
 
 export type Device = 'kbm' | 'pad' | 'touch';
 
@@ -26,7 +27,8 @@ type KeyName = 'LEFT' | 'RIGHT' | 'UP' | 'DOWN' | 'A' | 'D' | 'W' | 'S' | 'SPACE
 /**
  * One input layer. Keyboard: arrows or WASD fly, Space/J fire, Shift/K pulse, M sound, Enter start, Esc back.
  * Mouse: left button fires, right button pulses. Controller: left stick or D-pad flies, A/RT/RB fire, B/LT/LB pulse,
- * Y sound, Start/A confirm, Back returns. Touch arrives in milestone 6. The last device used decides the hints.
+ * Y sound, Start/A confirm, Back returns. Touch (src/touch.ts): left stick flies, FIRE holds, PULSE taps. The last
+ * device used decides the hints.
  * Construct one per scene.
  */
 export class Controls {
@@ -35,6 +37,7 @@ export class Controls {
   private prevButtons = new Set<number>();
   private prevTriggerL = false;
   private prevRightMouse = false;
+  private prevTouchPulse = false;
   private readonly keys: Record<KeyName, Phaser.Input.Keyboard.Key>;
 
   constructor(private readonly scene: Phaser.Scene) {
@@ -91,6 +94,15 @@ export class Controls {
       back ||= edges.has(BTN.BACK);
       mute ||= edges.has(BTN.Y);
     }
+    touchControls.render();
+    const thumb = touchControls.stick();
+    if (thumb && (thumb.x || thumb.y)) { move.x = thumb.x; move.y = thumb.y; }
+    const touchPulse = touchControls.pressed('pulse');
+    fire ||= touchControls.pressed('fire');
+    pulse ||= touchPulse && !this.prevTouchPulse;
+    this.prevTouchPulse = touchPulse;
+    if (touchControls.active) this.device = 'touch';
+
     const len = Math.hypot(move.x, move.y);
     if (len > 1) { move.x /= len; move.y /= len; }
     return { move, fire, pulse, confirm, back, mute, device: this.device };
