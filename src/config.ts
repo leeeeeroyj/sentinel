@@ -68,3 +68,40 @@ export const PARALLAX = { stars: 0.12, planet: 0.03, skyline: 0.45 };
 
 /** Registry key the game writes its HUD state to each frame; the HUD scene reads it. */
 export const HUD_STATE = 'hudState';
+
+/** Death and respawn: the craft is gone for `respawnDelay` s, then blinks and can't be hit for `invuln` s. */
+export const LIFE = { respawnDelay: 1.2, invuln: 2, gameOverDelay: 3 };
+
+/** The laser: one streak per `cooldown` s while fire is held. It grows at `speed` px/s to `range`, fading over `life` s. */
+export const LASER = { cooldown: 0.17, speed: 1150, range: 300, life: 0.3, halfHeight: 7 };
+
+/**
+ * Colonists stand with their feet on GROUND_Y. A fall from more than `safeFall` px above the hull (5 tiles) kills;
+ * a shorter one scores `points.land` / 2.
+ */
+export const COLONIST = {
+  count: 10,
+  walk: 5,
+  roam: 24,
+  gravity: 38,
+  maxFall: 46,
+  safeFall: 80,
+  /** Catch window round the spot just under the craft. */
+  catchX: 10,
+  catchY: 9,
+  /** Carried colonists hang this far below the craft. */
+  hang: 9,
+};
+
+/** Hostiles. Speeds in px/s. Every one warps in over `warp` s, harmless and unshootable until it's solid. */
+export const HOSTILE = {
+  warp: 0.5,
+  group: 5,
+  /** Craft-to-hostile collision box (half sizes), a little smaller than the sprites. */
+  hitX: 10,
+  hitY: 9,
+  snatcher: { seek: 30, descend: 34, lift: 13, bob: 10, grab: 10, fuseY: HUD_H + 12 },
+  husk: { speed: 62, jitter: 0.35, jitterX: 60, jitterY: 50 },
+};
+
+export const POINTS = { snatcher: 150, husk: 150, catch: 500, land: 500, safeFall: 250 };
