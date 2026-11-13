@@ -30,10 +30,7 @@ Sentinel is an original arcade game inspired by the mechanics of Williams Electr
 
 ## Status
 
-Sentinel is in active development and is **feature-complete** (milestone 6 of 7): the full roster, waves, the scanner, sound, explosions and touch controls are all in. Still to come:
-
-- A balance pass, tuned from real play
-- Touch controls checked on a real phone (so far tested in emulation)
+Sentinel is **complete**: all seven milestones of the build plan are done, from the first playable through the full roster, waves, the scanner, sound and explosions to touch controls (tested on a real phone) and a balance check from real play.
 
 ## How to play
 

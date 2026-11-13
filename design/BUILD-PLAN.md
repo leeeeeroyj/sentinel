@@ -74,16 +74,17 @@ Headless Chrome via CDP with real key, mouse and touch events. Dev builds expose
 ## Decisions
 
 - **Sprite picks (2026-11-12):** craft 440110 (mirrored), colonist 40575, Snatcher 378915, Husk 645921, Hound 474247, Minelayer 1156519, mine 1166281 (spiked bomb; swapped from 820799 on review), pulse icon 718465.
-- **Colonists at half size (8 px),** to try in play. Revisit in the balance pass if they're hard to see or catch.
+- **Colonists at half size (8 px),** to try in play. Kept after the user's play-through (2026-11-13).
 - **Ring size: 8 screens (3,328 px)** to start; it's one number in `config.ts`.
 - **Mines can only be pulsed or avoided.**
+- **Balance (2026-11-13): no tuning.** The user played on desktop and an Android phone and found it felt good, so the wave table, Hound timer and hostile speeds stay as built.
 
 ## Open questions
 
 - **The name.** Renamed from Guardian to **Sentinel** on 2026-11-12 (directory too). The name is crowded: Geoff Crammond's *The Sentinel* (1986); Sony filed THE SENTINEL for game software in Europe (2016); Sentinel Games, Inc. has pending US applications for downloadable games (2023); ZeniMax filed *The Elder Scrolls VI: Sentinel* (Nov 2026, toys); *Hyper Sentinel* (2018) is a Defender-inspired shooter. Fine for a free personal project; revisit before any commercial use or public promotion.
 - ~~**Repo and Pages URL.**~~ Settled 2026-11-13: the repo was renamed to `leeeeeroyj/sentinel`; Pages at `https://leeeeeroyj.github.io/sentinel/`.
 
-## Status (2026-11-13)
+## Status (2026-11-13: complete)
 
 - **Committed and pushed (2026-11-13, `ece2473`):** Part A, and milestone 1 (skeleton). Project files (Vite 8.3.8, Phaser 4.2.1, TypeScript 7), title scene, backdrop (stars, planet, skyline, one-lap hull texture, lit and dark palettes), the craft with modern flight and the leading view, a minimal HUD (score, ships, pulses, wave, tappable sound toggle, hint strip), keyboard + mouse and controller input, Pages deploy workflow.
 - **Verified:** `npm run build` passes (typecheck + bundle). `node tools/m1-test.mjs . <out-dir>` drives the dev build in headless Chrome with real key events: 15/15 checks. A full lap right (3,345 px in 20.3 s), x wraps to 0 at the seam and stays in [0, 3328), top speed 175, drag stops the craft, a left push turns it and the view swings to lead left, climb and dive stop at y 42 and 202, Esc returns to the title, no page errors. Screenshots across the seam facing both ways show no break in hull, skyline or stars. 35 fps in headless SwiftShader.
@@ -106,4 +107,6 @@ Headless Chrome via CDP with real key, mouse and touch events. Dev builds expose
 - **Verified (M6):** `node tools/m6-test.mjs . <out-dir>`: 40/40, with CDP touch emulation at 844 × 390 (corner layout) and 932 × 390 (side-bar layout): tap START; controls shown, fully on screen, 38–94 px across; the stick flies right, turns left, climbs; FIRE kills while the other thumb holds the stick; a PULSE tap fires one pulse; a catch and a stick-down landing (+500); the speaker toggles sound by tap; controls hide on game over with a touch hint; RETRY by tap; controls return. Portrait shows the turn-sideways overlay. M1–M5 still pass.
 - **README and screenshot refreshed (2026-11-13),** ahead of milestone 7 because the published README still said milestone 2: Status (feature-complete; balance pass and real-phone check to come), rules for enemy fire, pulse, waves, Hounds, the dark ring and extra ships, the full roster with mines, a Touch column in the controls, and a new hero shot (wave 3, kill burst, lift in progress, Hound, Minelayer and mines, both lamps lit).
 - **Autopilot balance probe (not committed):** the concept sheet's demo pilot run in headless Chrome cleared waves 1–3 in 62, 83 and 75 s, losing 2–3 ships and about 2 colonists a wave, and never pulsed. A crude bot, so only a sanity check: waves take about a minute or so and nothing is out of reach. The real tuning needs human play.
-- **Next:** a real phone and a play-through (needs the user), then the balance pass to finish milestone 7.
+- **Milestone 7 (polish), committed and pushed 2026-11-13. Sentinel is complete.** Real-phone check done: the user played on an Android phone and the touch controls felt fine. Balance pass: the user's play-through felt good, so nothing was retuned (see Decisions). README Status now says the game is complete; the hero screenshot was already refreshed for the full game.
+- **Verified (M7):** M1–M6 suites pass (15, 22, 23, 27, 27, 40); build clean; Part C checks clean.
+- **Known gaps, left as they are:** prefers-reduced-motion isn't exercised by a test; on touch there's no way back to the title mid-game (only from game over); the deploy workflow's actions (`checkout@v4`, `setup-node@v4`, `upload-pages-artifact@v3`) run on the deprecated Node 20 and want bumping before GitHub drops it.
