@@ -69,8 +69,11 @@ export const PARALLAX = { stars: 0.12, planet: 0.03, skyline: 0.45 };
 /** Registry key the game writes its HUD state to each frame; the HUD scene reads it. */
 export const HUD_STATE = 'hudState';
 
-/** Death and respawn: the craft is gone for `respawnDelay` s, then blinks and can't be hit for `invuln` s. */
-export const LIFE = { respawnDelay: 1.2, invuln: 2, gameOverDelay: 3 };
+/**
+ * Death and respawn: the craft is gone for `respawnDelay` s, then blinks and can't be hit for `invuln` s.
+ * After game over, RETRY and TITLE ignore input for `retryDelay` s so a held button doesn't skip the screen.
+ */
+export const LIFE = { respawnDelay: 1.2, invuln: 2, retryDelay: 0.8 };
 
 /** The laser: one streak per `cooldown` s while fire is held. It grows at `speed` px/s to `range`, fading over `life` s. */
 export const LASER = { cooldown: 0.17, speed: 1150, range: 300, life: 0.3, halfHeight: 7 };
@@ -132,3 +135,32 @@ export const MINE = { life: 6, arm: 0.4, hitX: 7, hitY: 6 };
 export const HOUNDS = { first: 60, perWave: 5, min: 30, warn: 3, every: 10, ahead: 150 };
 
 export const POINTS = { snatcher: 150, husk: 150, minelayer: 250, hound: 200, catch: 500, land: 500, safeFall: 250 };
+
+/**
+ * Waves. Snatchers come in groups of `group`: `first` in wave 1 and `more` each wave after. The next group warps in
+ * every `groupEvery` s, or as soon as no Snatcher is left. Hostiles move `pace` faster and shoot `firePace` more often
+ * each wave, up to the caps. Each colonist alive at the end scores `bonusPer` × wave, capped at `bonusCap`.
+ * Every `restoreEvery`th wave brings back all ten colonists and the ring's lights.
+ */
+export const WAVES = {
+  first: 15,
+  more: 3,
+  group: 5,
+  groupEvery: 15,
+  /** Minelayers per wave, by wave number; the last entry repeats. */
+  minelayers: [1, 1, 2, 2, 3, 3, 4],
+  pace: 0.05,
+  paceCap: 1.5,
+  firePace: 0.06,
+  firePaceCap: 1.6,
+  bonusPer: 100,
+  bonusCap: 500,
+  restoreEvery: 5,
+  /** Seconds the wave-cleared banner shows before the next wave starts. */
+  intermission: 3.5,
+  /** Seconds the WAVE n banner shows as a wave starts. */
+  banner: 1.6,
+};
+
+/** An extra ship and an extra pulse every this many points. */
+export const EXTRA_EVERY = 10_000;

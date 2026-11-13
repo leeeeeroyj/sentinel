@@ -191,8 +191,10 @@ await run(`s.ships = 1; s.spawn('husk', s.craft.x, s.craft.y, 0);`);
 await sleep(300);
 s = await state();
 check('last ship lost: game over', s.ships === 0 && s.over > 0);
+await sleep(900);
 await shot('7-game-over');
-await until(() => evaluate(`__sentinel.scene.isActive('title')`), 6000).then(() => check('game over returns to the title', true), () => check('game over returns to the title', false));
+await tap('Escape');
+await until(() => evaluate(`__sentinel.scene.isActive('title')`), 6000).then(() => check('Esc on game over returns to the title', true), () => check('Esc on game over returns to the title', false));
 
 // 9. Natural play: groups of five keep arriving while no Snatcher is left.
 await tap('Enter');

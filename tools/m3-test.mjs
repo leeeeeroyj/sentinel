@@ -68,7 +68,7 @@ const place = (kind, dx, y, extra = '') => run(`const e = s.spawn('${kind}', ${X
 
 await calm();
 await park();
-await run(`s.colonists.forEach((c) => { c.state = 'dead'; });`); // nothing for Snatchers to chase off screen
+await run(`s.colonists.forEach((c) => { c.x = c.home = (${X} + 800) % 3328; });`); // far away, so Snatchers here stay hunting
 
 // 1. One of each, on screen, for a look.
 for (const [i, kind] of ['snatcher', 'husk', 'minelayer', 'hound'].entries()) {

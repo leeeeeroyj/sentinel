@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { COLORS, FONT, GROUND_Y, HUD_H, HUD_SCALE, HUD_STATE, MIRROR, TEXT, WIDTH } from '../config';
 import type { Device } from '../controls';
 import { MUTED, toggleMute } from '../sfx';
+import type { RingScene } from './RingScene';
 import { fitCamera } from '../view';
 
 export interface HudState {
@@ -14,6 +15,8 @@ export interface HudState {
   hound: 'off' | 'blink' | 'on';
   /** TAKEN lamp: a Snatcher is holding a colonist. */
   taken: boolean;
+  /** The last ship is gone: show the game-over panel. */
+  over: boolean;
 }
 
 // HUD space is the design size × HUD_SCALE (832×456): sprites drawn here at native 16 px come out half the size
@@ -26,6 +29,12 @@ const HINTS: Record<Device, string> = {
   pad: 'STICK FLY  ·  A FIRE  ·  B PULSE  ·  Y SOUND',
   touch: 'STICK FLY  ·  HOLD FIRE  ·  TAP PULSE',
 };
+const OVER_HINTS: Record<Device, string> = {
+  kbm: 'ENTER RETRY  ·  ESC TITLE',
+  pad: 'A RETRY  ·  BACK TITLE',
+  touch: 'TAP RETRY OR TITLE',
+};
+const PANEL = { w: 360, h: 150, y: 120 };
 const SPEAKER = { x: W - 28, y: 8, w: 20, h: 16 };
 const LAMP = { x: 716, w: 76, h: 20, hound: 6, taken: 32 };
 
@@ -40,6 +49,8 @@ export class HudScene extends Phaser.Scene {
   private icons: Phaser.GameObjects.Image[] = [];
   private shown = '';
   private lamps!: { hound: Phaser.GameObjects.Text; taken: Phaser.GameObjects.Text };
+  private overPanel!: Phaser.GameObjects.Container;
+  private overScore!: Phaser.GameObjects.Text;
 
   constructor() {
     super('hud');
@@ -65,6 +76,8 @@ export class HudScene extends Phaser.Scene {
     this.lamps = { hound: lampText(LAMP.hound, 'HOUND'), taken: lampText(LAMP.taken, 'TAKEN') };
     this.hint = label(W / 2, (GROUND_Y + 4) * S, '').setOrigin(0.5, 0);
 
+    this.overPanel = this.buildOverPanel(label);
+
     // Phones have no M key: the speaker is a tap target, padded for a thumb.
     this.add.zone(SPEAKER.x - 12, 0, SPEAKER.w + 24, BAR).setOrigin(0).setInteractive({ useHandCursor: true })
       .on('pointerdown', () => toggleMute(this));
@@ -76,7 +89,11 @@ export class HudScene extends Phaser.Scene {
     this.dynamic.clear();
     this.score.setText(pts(s.score));
     this.wave.setText(String(s.wave).padStart(2, '0'));
-    this.hint.setText(HINTS[s.device]);
+    this.hint.setText((s.over ? OVER_HINTS : HINTS)[s.device]);
+    if (s.over !== this.overPanel.visible) {
+      this.overPanel.setVisible(s.over);
+      this.overScore.setText(`SCORE ${pts(s.score)}   ·   WAVE ${String(s.wave).padStart(2, '0')}`);
+    }
 
     const key = `${s.ships}:${s.pulses}`;
     if (key !== this.shown) {
@@ -99,6 +116,26 @@ export class HudScene extends Phaser.Scene {
     px(0, 2, 2, 3); px(2, 1, 1, 5); px(3, 0, 1, 7);
     if (muted) for (let i = 0; i < 4; i++) { px(5 + i, 1 + i); px(8 - i, 1 + i); }
     else { px(5, 2, 1, 3); px(7, 1, 1, 5); px(9, 0, 1, 7); }
+  }
+
+  /** GAME OVER, the final score, and RETRY / TITLE buttons big enough for a thumb. Hidden until the run ends. */
+  private buildOverPanel(label: (x: number, y: number, text: string, color?: string) => Phaser.GameObjects.Text) {
+    const ring = () => this.scene.get('ring') as RingScene;
+    const g = this.add.graphics();
+    g.fillStyle(COLORS.void, 0.88).fillRect(-PANEL.w / 2, 0, PANEL.w, PANEL.h);
+    g.lineStyle(2, COLORS.line).strokeRect(-PANEL.w / 2, 0, PANEL.w, PANEL.h);
+    const title = this.add.text(0, 14, 'GAME OVER', { fontFamily: FONT, fontSize: '32px', color: TEXT.danger }).setOrigin(0.5, 0);
+    this.overScore = label(0, 58, '', TEXT.ink).setOrigin(0.5, 0);
+    const button = (x: number, text: string, act: () => void) => {
+      const b = this.add.text(x, 96, text, {
+        fontFamily: FONT, fontSize: '16px', color: TEXT.amber, backgroundColor: '#0e1228', padding: { x: 16, y: 10 },
+      }).setOrigin(0.5, 0).setInteractive({ useHandCursor: true });
+      b.on('pointerdown', act);
+      return b;
+    };
+    const retry = button(-80, 'RETRY', () => ring().retry());
+    const title2 = button(80, 'TITLE', () => ring().leave());
+    return this.add.container(W / 2, PANEL.y, [g, title, this.overScore, retry, title2]).setDepth(5).setVisible(false);
   }
 
   /** An alarm lamp: a dark slot with a dim label, or filled with its colour and a dark label when lit. */

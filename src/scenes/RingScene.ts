@@ -1,12 +1,16 @@
 import Phaser from 'phaser';
-import { COLONIST, COLORS, CRAFT, FIRE, FONT, GROUND_Y, HOSTILE, HOUNDS, HUD_H, HUD_STATE, LASER, LIFE, MINE, MIRROR, POINTS, RENDER_SCALE, TEXT, WIDTH, WORLD_W } from '../config';
+import {
+  COLONIST, COLORS, CRAFT, EXTRA_EVERY, FIRE, FONT, GROUND_Y, HOSTILE, HOUNDS, HUD_H, HUD_STATE, LASER, LIFE, MINE, MIRROR, POINTS,
+  RENDER_SCALE, TEXT, WAVES, WIDTH, WORLD_W,
+} from '../config';
 import { Backdrop } from '../backdrop';
 import { Controls, type ControlState } from '../controls';
 import { createColonists, drop, setDown, updateColonist, type Colonist } from '../entities/colonist';
 import {
-  canFire, createHostile, release, tickFire, updateHound, updateHusk, updateMinelayer, updateSnatcher, type Hostile, type HostileKind,
+  canFire, createHostile, fuse, release, tickFire, updateHound, updateHusk, updateMinelayer, updateSnatcher, type Hostile, type HostileKind,
 } from '../entities/hostile';
 import { toggleMute } from '../sfx';
+import { bonusFor, firePaceOf, minelayersIn, paceOf, restores, snatchersIn } from '../waves';
 import { fitCamera } from '../view';
 import { wdx, wrap } from '../world';
 import type { HudState } from './HudScene';
@@ -72,6 +76,7 @@ export class RingScene extends Phaser.Scene {
   private flame!: Phaser.GameObjects.Graphics;
   /** Laser streaks, tethers and warp-in rings, redrawn each frame. */
   private lines!: Phaser.GameObjects.Graphics;
+  private banner!: { title: Phaser.GameObjects.Text; sub: Phaser.GameObjects.Text; life: number };
 
   // Run state, all reset in create() (scene.restart reuses this instance). Public for the dev-only test handle.
   craft: Craft = { x: 0, y: 0, vx: 0, facing: 1, lead: 0, invuln: 0, down: 0 };
@@ -87,15 +92,21 @@ export class RingScene extends Phaser.Scene {
   score = 0;
   ships = 0;
   pulses = 0;
-  /** Sends a new group of Snatchers when the last one is gone. Waves replace this in milestone 4. */
+  /** Runs the waves: arrivals, wave end, Hounds. Test hooks switch it off with calm(). */
   spawning = true;
   wave = 1;
+  /** Snatchers this wave still to warp in, and seconds until the next group. */
+  toSpawn = 0;
+  groupT = 0;
+  /** Seconds left in the break between waves; 0 during a wave. */
+  between = 0;
+  /** Seconds since the last ship was lost; -1 while the run is on. */
+  over = -1;
   /** Seconds spent in this wave, for the Hound timer, and when the next Hound comes. */
   stall = 0;
   nextHound = 0;
   private clock = 0;
   private fireCool = 0;
-  private over = 0;
   private leaving = false;
 
   constructor() {
@@ -111,7 +122,8 @@ export class RingScene extends Phaser.Scene {
     this.score = 0;
     this.ships = CRAFT.ships;
     this.pulses = CRAFT.pulses;
-    this.over = 0;
+    this.over = -1;
+    this.between = 0;
     this.leaving = false;
     this.spawning = true;
     this.beams = [];
@@ -119,9 +131,6 @@ export class RingScene extends Phaser.Scene {
     this.hostiles = [];
     this.shots = [];
     this.mines = [];
-    this.wave = 1;
-    this.stall = 0;
-    this.nextHound = this.houndTime();
 
     fitCamera(this, RENDER_SCALE);
     this.cameras.main.fadeIn(250);
@@ -131,7 +140,11 @@ export class RingScene extends Phaser.Scene {
     this.lines = this.add.graphics().setDepth(8);
     this.flame = this.add.graphics().setDepth(9);
     this.craftImg = this.add.image(0, 0, 'player').setDepth(10);
-    this.spawnGroup();
+    // Banners sit behind every sprite, so they never hide a hazard.
+    const bannerText = (y: number, size: number, color: string) =>
+      this.add.text(WIDTH / 2, y, '', { fontFamily: FONT, fontSize: `${size}px`, color, align: 'center' }).setOrigin(0.5).setDepth(5);
+    this.banner = { title: bannerText(84, 16, TEXT.amber), sub: bannerText(102, 8, TEXT.ink), life: 0 };
+    this.startWave(1);
     this.scene.launch('hud');
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.scene.stop('hud'));
   }
@@ -142,6 +155,7 @@ export class RingScene extends Phaser.Scene {
     const input = this.controls.read();
     if (input.mute) toggleMute(this);
     if (input.back) this.leave();
+    if (this.over >= 0 && (this.over += dt) > LIFE.retryDelay && input.confirm) this.retry();
 
     this.fly(input, dt);
     this.fire(input, dt);
@@ -153,8 +167,9 @@ export class RingScene extends Phaser.Scene {
     this.updateBeams(dt);
     this.collide();
     this.updatePopups(dt);
-    if (this.spawning && !this.hostiles.some((e) => e.kind === 'snatcher')) this.spawnGroup();
-    if (this.over > 0 && (this.over -= dt) <= 0) this.leave();
+    if (!this.dark && this.colonists.every((c) => c.state === 'dead')) this.goDark();
+    if (this.spawning) this.runWave(dt);
+    if ((this.banner.life -= dt) <= 0) this.banner.title.setVisible(false), this.banner.sub.setVisible(false);
 
     this.backdrop.update(this.camX, this.travel, this.clock);
     this.draw();
@@ -163,6 +178,7 @@ export class RingScene extends Phaser.Scene {
       score: this.score, ships: this.ships, pulses: this.pulses, wave: this.wave, device: input.device,
       hound: this.hostiles.some((e) => e.kind === 'hound') ? 'on' : this.houndWarning ? 'blink' : 'off',
       taken: this.colonists.some((c) => c.state === 'taken'),
+      over: this.over >= 0,
     };
     this.registry.set(HUD_STATE, hud);
   }
@@ -201,14 +217,94 @@ export class RingScene extends Phaser.Scene {
     this.shots = [];
   }
 
-  /** Five Snatchers spread round the part of the ring you can't see. */
-  private spawnGroup() {
+  get dark() {
+    return this.backdrop.isDark;
+  }
+
+  /** A world x somewhere in the part of the ring you can't see: slot i of n, spread evenly round it. */
+  private unseenX(i: number, n: number) {
     const span = WORLD_W - WIDTH - 120;
-    for (let i = 0; i < HOSTILE.group; i++) {
-      const x = this.camX + WIDTH / 2 + 60 + ((i + Math.random() * 0.5) * span) / HOSTILE.group;
-      this.spawn('snatcher', x, 60 + Math.random() * 60);
+    return this.camX + WIDTH / 2 + 60 + ((i + Math.random() * 0.5) * span) / n;
+  }
+
+  /** The next group of Snatchers (Husks while the ring is dark), spread round the part of the ring you can't see. */
+  private spawnGroup() {
+    const n = Math.min(WAVES.group, this.toSpawn);
+    this.toSpawn -= n;
+    this.groupT = WAVES.groupEvery;
+    for (let i = 0; i < n; i++) this.spawn(this.dark ? 'husk' : 'snatcher', this.unseenX(i, n), 60 + Math.random() * 60);
+  }
+
+  private startWave(n: number) {
+    this.wave = n;
+    this.between = 0;
+    this.stall = 0;
+    this.nextHound = this.houndTime();
+    if (restores(n)) this.restore();
+    this.toSpawn = snatchersIn(n);
+    this.spawnGroup();
+    const layers = minelayersIn(n);
+    for (let i = 0; i < layers; i++) this.spawn('minelayer', this.unseenX(i, layers), 80 + Math.random() * 50);
+    this.showBanner(`WAVE ${n}`, '', WAVES.banner);
+  }
+
+  /** Groups keep coming until the wave's quota is out; the wave ends when every Snatcher, Husk and Minelayer is gone. */
+  private runWave(dt: number) {
+    if (this.between > 0) {
+      if ((this.between -= dt) <= 0) this.startWave(this.wave + 1);
+      return;
     }
-    if (!this.hostiles.some((e) => e.kind === 'minelayer')) this.spawn('minelayer', this.camX + WORLD_W / 2, 90 + Math.random() * 40);
+    if (this.over >= 0) return;
+    this.groupT -= dt;
+    const hunting = this.hostiles.some((e) => e.kind === 'snatcher' || (this.dark && e.kind === 'husk'));
+    if (this.toSpawn > 0 && (this.groupT <= 0 || !hunting)) this.spawnGroup();
+    if (this.toSpawn === 0 && this.hostiles.every((e) => e.kind === 'hound')) this.endWave();
+  }
+
+  /** Clears the leftovers, pays the colonist bonus and starts the break before the next wave. */
+  private endWave() {
+    [...this.hostiles].forEach((e) => this.remove(e));
+    this.mines.forEach((m) => m.img.destroy());
+    this.mines = [];
+    this.shots = [];
+    const alive = this.colonists.filter((c) => c.state !== 'dead').length;
+    const bonus = bonusFor(this.wave, alive);
+    this.gain(bonus);
+    this.showBanner(`WAVE ${this.wave} CLEARED`, `BONUS  ${alive} × ${bonusFor(this.wave, 1)}  =  ${bonus}`, WAVES.intermission);
+    this.between = WAVES.intermission;
+    this.nextHound = Infinity;
+  }
+
+  /** The last colonist is gone: the lights die, and every Snatcher becomes a Husk. */
+  private goDark() {
+    this.backdrop.setDark(true);
+    for (const e of this.hostiles) if (e.kind === 'snatcher') fuse(e);
+    this.showBanner('THE RING IS DARK', 'COLONISTS RETURN ON WAVE ' + Math.ceil((this.wave + 1) / WAVES.restoreEvery) * WAVES.restoreEvery, 2.5);
+  }
+
+  /** Every 5th wave: all ten colonists back on the hull, and the lights on. */
+  private restore() {
+    this.backdrop.setDark(false);
+    this.craft.carry = undefined;
+    this.colonists.forEach((c) => c.img.destroy());
+    this.colonists = createColonists(this);
+  }
+
+  private showBanner(title: string, sub: string, secs: number) {
+    this.banner.title.setText(title).setVisible(true);
+    this.banner.sub.setText(sub).setVisible(!!sub);
+    this.banner.life = secs;
+  }
+
+  /** Test hook: ends the wave as if every hostile had been destroyed. */
+  clearWave() {
+    this.toSpawn = 0;
+    [...this.hostiles].forEach((e) => this.remove(e));
+    this.spawning = true;
+  }
+
+  retry() {
+    this.scene.restart();
   }
 
   /** Seconds into a wave before the first Hound: shorter each wave, down to a floor. */
@@ -219,7 +315,7 @@ export class RingScene extends Phaser.Scene {
   /** True while the HOUND lamp blinks: the last few seconds before the first Hound of the wave. */
   get houndWarning() {
     const first = this.houndTime();
-    return this.stall >= first - HOUNDS.warn && this.stall < first;
+    return this.nextHound === first && this.stall >= first - HOUNDS.warn && this.stall < first;
   }
 
   /** Stall too long and Hounds come: one beside you, then another every HOUNDS.every s. */
@@ -268,7 +364,7 @@ export class RingScene extends Phaser.Scene {
   }
 
   private get flying() {
-    return this.craft.down <= 0 && this.over <= 0;
+    return this.craft.down <= 0 && this.over < 0;
   }
 
   /** Push the way you want to go: a strong push turns the craft, a weak one only nudges it. */
@@ -277,7 +373,7 @@ export class RingScene extends Phaser.Scene {
     c.invuln = Math.max(0, c.invuln - dt);
     if (c.down > 0) {
       c.down -= dt;
-      if (c.down <= 0 && this.over <= 0) {
+      if (c.down <= 0 && this.over < 0) {
         c.down = 0;
         c.invuln = LIFE.invuln;
       }
@@ -323,17 +419,20 @@ export class RingScene extends Phaser.Scene {
     this.beams = this.beams.filter((b) => b.life > 0);
   }
 
-  private updateHostiles(dt: number) {
+  private updateHostiles(dt0: number) {
+    // Later waves run the hostiles' clocks faster: they move and shoot more often.
+    const pace = paceOf(this.wave), firePace = firePaceOf(this.wave);
     for (const e of this.hostiles) {
+      const dt = dt0 * pace;
       if (e.dead) continue;
       e.t += dt;
-      if (e.warp > 0) { e.warp = Math.max(0, e.warp - dt); continue; }
+      if (e.warp > 0) { e.warp = Math.max(0, e.warp - dt0); continue; }
       const c = this.craft;
       if (e.kind === 'snatcher') updateSnatcher(e, dt, this.colonists, this.hostiles);
       else if (e.kind === 'husk') updateHusk(e, dt, c.x, c.y);
       else if (e.kind === 'hound') updateHound(e, dt, c.x, c.y);
       else if (updateMinelayer(e, dt)) this.layMine(e.x, e.y + 6);
-      if (tickFire(e, dt) && this.flying && this.onScreen(e.x, -8)) this.shoot(e);
+      if (tickFire(e, dt0 * firePace) && this.flying && this.onScreen(e.x, -8)) this.shoot(e);
     }
   }
 
@@ -403,17 +502,12 @@ export class RingScene extends Phaser.Scene {
     c.vx = 0;
     this.ships = Math.max(0, this.ships - 1);
     c.down = LIFE.respawnDelay;
-    if (this.ships === 0) {
-      // Placeholder until milestone 4 brings the real game-over screen with RETRY and TITLE.
-      this.over = LIFE.gameOverDelay;
-      this.add.text(WIDTH / 2, 100, 'GAME OVER', { fontFamily: FONT, fontSize: '16px', color: TEXT.danger })
-        .setOrigin(0.5).setDepth(12);
-    }
+    if (this.ships === 0) this.over = 0;
   }
 
   /** Scores and floats the points up from (x, y). */
   private addScore(n: number, x: number, y: number, label = String(n)) {
-    this.score += n;
+    this.gain(n);
     const text = this.add.text(0, y - 12, label, { fontFamily: FONT, fontSize: '8px', color: TEXT.amber })
       .setOrigin(0.5).setDepth(11);
     this.popups.push({ x, life: 1, text });
@@ -489,7 +583,7 @@ export class RingScene extends Phaser.Scene {
 
   private drawCraft(blink: (hz: number) => boolean) {
     const c = this.craft, x = Math.round(this.sx(c.x)), y = Math.round(c.y);
-    const shown = c.down <= 0 && !(c.invuln > 0 && blink(10));
+    const shown = this.flying && !(c.invuln > 0 && blink(10));
     this.craftImg.setVisible(shown).setPosition(x, y).setFlipX(MIRROR.has('player') !== c.facing < 0);
     const g = this.flame.clear();
     if (shown && Math.abs(c.vx) > 30 && Math.sign(c.vx) === c.facing) {
@@ -499,7 +593,20 @@ export class RingScene extends Phaser.Scene {
     }
   }
 
-  private leave() {
+  /** Adds points, with an extra ship and pulse at every EXTRA_EVERY. */
+  private gain(n: number) {
+    const before = Math.floor(this.score / EXTRA_EVERY);
+    this.score += n;
+    const extra = Math.floor(this.score / EXTRA_EVERY) - before;
+    if (extra <= 0 || this.over >= 0) return;
+    this.ships += extra;
+    this.pulses += extra;
+    const c = this.craft, text = this.add.text(0, c.y - 20, '+SHIP +PULSE', { fontFamily: FONT, fontSize: '8px', color: TEXT.beam })
+      .setOrigin(0.5).setDepth(11);
+    this.popups.push({ x: c.x, life: 1.5, text });
+  }
+
+  leave() {
     if (this.leaving) return;
     this.leaving = true;
     this.cameras.main.fadeOut(250);
