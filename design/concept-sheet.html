@@ -1,0 +1,987 @@
+<title>Sentinel Concept Sheet</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@400;500;600&family=Silkscreen:wght@400;700&display=swap">
+<style>
+/* Layout: a patrol briefing for the ring's defence wing. The live patrol screen leads, then the craft and the people it guards, then the hostiles, then the rules of a wave. One deliberate dark look: orbital night. */
+:root {
+  --void: #060813;      /* page ground, orbital night */
+  --panel: #0e1228;     /* raised surfaces */
+  --line: #232a52;      /* hairlines, empty cells */
+  --ink: #e6eaff;       /* primary text */
+  --dim: #8d95c2;       /* secondary text */
+  --amber: #ffc04d;     /* accent: HUD, selection, points */
+  --beam: #6ff7ff;      /* your laser, ring lights, colonists */
+  --danger: #ff4d6d;    /* hostile fire, alarms */
+  --font-display: "Silkscreen", "Courier New", monospace;
+  --font-body: "Barlow Semi Condensed", "Arial Narrow", "Segoe UI", system-ui, sans-serif;
+  --step--1: 0.875rem; --step-0: 1.0625rem; --step-1: 1.3rem; --step-2: 1.8rem; --step-3: clamp(2.5rem, 8vw, 4.5rem);
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  background: var(--void); color: var(--ink); font-family: var(--font-body); font-size: var(--step-0); line-height: 1.5;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 0 48px;
+}
+.wrap { max-width: 1264px; margin: 0 auto; display: grid; gap: 56px; }
+h1, h2, h3, .label { font-family: var(--font-display); font-weight: 400; text-wrap: balance; margin: 0; }
+h1 { font-size: var(--step-3); line-height: 1; letter-spacing: 0.04em; color: var(--amber); }
+h2 { font-size: var(--step-2); line-height: 1.1; }
+h3 { font-size: var(--step-0); letter-spacing: 0.04em; }
+p { margin: 0; }
+.label { font-size: 0.75rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--dim); }
+.muted { color: var(--dim); }
+
+header.top { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 16px 32px; padding-top: 40px; }
+header.top .pitch { max-width: 58ch; margin-top: 14px; color: var(--dim); font-size: var(--step-1); line-height: 1.35; }
+.actions { display: grid; gap: 8px; justify-items: end; }
+button.primary {
+  font-family: var(--font-display); font-size: 0.8125rem; letter-spacing: 0.08em; text-transform: uppercase;
+  background: var(--amber); color: var(--void); border: 0; padding: 12px 18px; cursor: pointer;
+  box-shadow: 4px 4px 0 var(--line);
+}
+button.primary:active { transform: translate(2px, 2px); box-shadow: 2px 2px 0 var(--line); }
+button:focus-visible, canvas:focus-visible { outline: 2px solid var(--beam); outline-offset: 3px; }
+#copy-status { font-size: var(--step--1); color: var(--dim); min-height: 1.5em; }
+#picks-text { width: min(420px, 100%); height: 140px; background: var(--panel); color: var(--ink); border: 1px solid var(--line); font: 12px/1.4 monospace; }
+
+/* Screen */
+.screen-block { display: grid; gap: 16px; }
+.bezel { background: #03040a; border: 1px solid var(--line); padding: clamp(6px, 1.5vw, 16px); box-shadow: 0 0 0 4px var(--panel), 0 24px 60px -30px #000; }
+#screen { display: block; width: 100%; max-width: 100%; height: auto; aspect-ratio: 416 / 228; image-rendering: pixelated; touch-action: none; }
+.controls { display: grid; gap: 10px; }
+.keys { display: flex; flex-wrap: wrap; gap: 10px 22px; align-items: center; }
+.keys > .label { min-width: 104px; }
+.key { display: inline-flex; gap: 4px; align-items: center; }
+kbd {
+  font-family: var(--font-display); font-size: 0.75rem; min-width: 26px; padding: 4px 6px; text-align: center;
+  background: var(--panel); border: 1px solid var(--line); border-bottom-width: 3px; color: var(--ink);
+}
+.pad-status { font-size: var(--step--1); color: var(--dim); }
+.pad-status[data-on="true"] { color: var(--beam); }
+.seg { display: inline-flex; border: 1px solid var(--line); }
+.seg button { font-family: var(--font-display); font-size: 0.75rem; background: var(--panel); color: var(--dim); border: 0; padding: 6px 10px; cursor: pointer; }
+.seg button[aria-pressed="true"] { background: var(--amber); color: var(--void); }
+.screen-notes { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 230px), 1fr)); gap: 12px 24px; }
+.screen-notes div { display: grid; gap: 2px; min-width: 0; align-content: start; }
+
+/* Slot panels */
+.section { display: grid; gap: 20px; }
+.section-head { display: grid; gap: 6px; max-width: 70ch; }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 296px), 1fr)); gap: 16px; }
+.card { background: var(--panel); border: 1px solid var(--line); padding: 16px; display: grid; gap: 14px; align-content: start; min-width: 0; }
+.card-head { display: grid; grid-template-columns: auto 1fr; gap: 14px; align-items: center; }
+.hero-sprite { width: 96px; height: 96px; image-rendering: pixelated; background: var(--void); border: 1px solid var(--line); }
+.hero-sprite.flip, .sizes img.flip { transform: scaleX(-1); }
+.card-title { display: grid; gap: 4px; min-width: 0; justify-items: start; }
+.chip { font-family: var(--font-display); font-size: 0.75rem; color: var(--void); background: var(--amber); padding: 2px 6px; font-variant-numeric: tabular-nums; }
+.chip.ghost { background: transparent; color: var(--amber); border: 1px solid var(--amber); }
+.card p { font-size: 1rem; }
+.cands { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+.cand { padding: 0; aspect-ratio: 1; background: var(--void); border: 1px solid var(--line); cursor: pointer; display: grid; place-items: center; }
+.cand img { width: 75%; height: 75%; image-rendering: pixelated; }
+.cand:hover { border-color: var(--dim); }
+.cand[aria-pressed="true"] { border-color: var(--amber); box-shadow: inset 0 0 0 1px var(--amber); }
+.meta { font-size: 0.8125rem; color: var(--dim); font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.mirror { font-family: var(--font-display); font-size: 0.6875rem; background: transparent; color: var(--dim); border: 1px solid var(--line); padding: 3px 8px; cursor: pointer; }
+.mirror[aria-pressed="true"] { color: var(--beam); border-color: var(--beam); }
+.sizes { display: flex; gap: 12px; align-items: end; }
+.sizes figure { margin: 0; display: grid; gap: 4px; justify-items: center; }
+.sizes img { image-rendering: pixelated; background: var(--void); }
+.sizes figcaption { font-size: 0.75rem; color: var(--dim); }
+
+/* Rules */
+.rules { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)); gap: 16px 32px; }
+.rules div { display: grid; gap: 4px; border-top: 1px solid var(--line); padding-top: 12px; align-content: start; }
+.rules strong { font-family: var(--font-display); font-weight: 400; color: var(--amber); font-variant-numeric: tabular-nums; }
+.lineage { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); gap: 16px; }
+.lineage div { background: var(--panel); border: 1px solid var(--line); padding: 16px; display: grid; gap: 8px; align-content: start; min-width: 0; }
+.lineage ul { margin: 0; padding-left: 1.1em; display: grid; gap: 4px; }
+footer { border-top: 1px solid var(--line); padding-top: 16px; font-size: var(--step--1); color: var(--dim); display: grid; gap: 6px; }
+footer a { color: var(--beam); }
+@media (prefers-reduced-motion: reduce) { button.primary:active { transform: none; } }
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <div>
+      <p class="label">Concept sheet · v0.1</p>
+      <h1>SENTINEL</h1>
+      <p class="pitch">Hold the ring. Patrol the endless loop of an orbital colony, shoot down the drones that snatch its people, and catch every colonist they drop.</p>
+    </div>
+    <div class="actions">
+      <button class="primary" id="copy-picks" type="button">Copy my picks</button>
+      <span id="copy-status" role="status"></span>
+      <textarea id="picks-text" hidden readonly aria-label="Your picks as JSON"></textarea>
+    </div>
+  </header>
+
+  <section class="screen-block" aria-labelledby="screen-h">
+    <div class="section-head">
+      <h2 id="screen-h">Patrol screen</h2>
+      <p class="muted">Live mockup at the game's real resolution (416&times;228). The ring is 8 screens around and loops, so keep flying and you come back to where you started. It plays a demo until you click the screen and take over. Sprites you pick below swap in here.</p>
+    </div>
+    <div class="bezel"><canvas id="screen" width="832" height="456" tabindex="0" aria-label="Game screen mockup. Click it, then fly with the arrow keys or W A S D, fire with Space, pulse with Shift."></canvas></div>
+    <div class="controls">
+      <div class="keys" aria-label="Keyboard and mouse">
+        <span class="label">Keyboard</span>
+        <span class="key"><kbd>&larr;</kbd><kbd>&rarr;</kbd>&nbsp;fly and face</span>
+        <span class="key"><kbd>&uarr;</kbd><kbd>&darr;</kbd>&nbsp;climb, dive</span>
+        <span class="key"><kbd>Space</kbd>&nbsp;or&nbsp;<kbd>Click</kbd>&nbsp;fire</span>
+        <span class="key"><kbd>Shift</kbd>&nbsp;or&nbsp;<kbd>Right-click</kbd>&nbsp;pulse</span>
+        <span class="key"><kbd>M</kbd>&nbsp;sound</span>
+      </div>
+      <div class="keys" aria-label="Controller">
+        <span class="label">Controller</span>
+        <span class="key"><kbd>L stick</kbd>&nbsp;or&nbsp;<kbd>D-pad</kbd>&nbsp;fly</span>
+        <span class="key"><kbd>A</kbd>&nbsp;/&nbsp;<kbd>RT</kbd>&nbsp;fire</span>
+        <span class="key"><kbd>B</kbd>&nbsp;/&nbsp;<kbd>LT</kbd>&nbsp;pulse</span>
+        <span class="key"><kbd>Y</kbd>&nbsp;sound</span>
+        <span class="pad-status" id="pad-status" role="status">No controller yet. Press any button on it.</span>
+      </div>
+      <div class="keys" aria-label="Touch">
+        <span class="label">Touch</span>
+        <span class="key">Left thumb: stick to fly</span>
+        <span class="key">Right thumb: FIRE (hold), PULSE</span>
+        <span class="seg" role="group" aria-label="Touch controls"><button type="button" id="touch-off" data-touch="off" aria-pressed="true">Hide</button><button type="button" id="touch-on" data-touch="on" aria-pressed="false">Show</button></span>
+      </div>
+      <div class="keys" aria-label="World state preview">
+        <span class="label">Preview</span>
+        <span class="seg" role="group" aria-label="World state"><button type="button" id="world-ok" data-world="ok" aria-pressed="true">Ring lit</button><button type="button" id="world-dark" data-world="dark" aria-pressed="false">Ring dark</button></span>
+        <span class="muted" id="world-note">What a wave looks like while colonists are still alive.</span>
+      </div>
+    </div>
+    <div class="screen-notes">
+      <div><span class="label">Top bar</span><span>Score, ships and pulse charges on the left. Wave number, colonist pips and the HOUND and TAKEN alarm lamps on the right, plus a sound toggle you can tap.</span></div>
+      <div><span class="label">Scanner</span><span>The whole ring at a glance, centred on you. Brackets mark what's on screen. Colonists are cyan, and blink amber while a Snatcher holds them.</span></div>
+      <div><span class="label">Edge arrows</span><span>When someone is taken off screen, an amber arrow on that edge points the way, at their height.</span></div>
+      <div><span class="label">The hull</span><span>Code-drawn, never sprites: domes, towers and a lit strip that repeat every lap of the ring. They go dark when the last colonist is lost.</span></div>
+    </div>
+  </section>
+
+  <section class="section" aria-labelledby="ship-h">
+    <div class="section-head">
+      <h2 id="ship-h">Your craft &amp; the colonists</h2>
+      <p class="muted">The craft flips to face the way you fly, so pick a side-on sprite. Every candidate is drawn nose-left, so <em>Mirror</em> starts on and the ship faces right at rest.</p>
+    </div>
+    <div class="grid" id="ship-grid"></div>
+  </section>
+
+  <section class="section" aria-labelledby="enemy-h">
+    <div class="section-head">
+      <h2 id="enemy-h">Hostiles</h2>
+      <p class="muted">Five roles. Each one shows a warning before it can hurt you: a closing warp ring when it arrives, a white flash before it fires, a lamp before Hounds come.</p>
+    </div>
+    <div class="grid" id="enemy-grid"></div>
+  </section>
+
+  <section class="section" aria-labelledby="kit-h">
+    <div class="section-head">
+      <h2 id="kit-h">HUD icon</h2>
+      <p class="muted">Shown at half size in the top bar (8&nbsp;px), still pixel-exact because the game renders at 4&times;.</p>
+    </div>
+    <div class="grid" id="kit-grid"></div>
+  </section>
+
+  <section class="section" aria-labelledby="rules-h">
+    <div class="section-head"><h2 id="rules-h">How a wave plays</h2></div>
+    <div class="rules">
+      <div><strong>10 colonists</strong><span>They walk the hull. Snatchers drop on them and climb away. Reach the top and the Snatcher and its catch fuse into a Husk. That colonist is gone.</span></div>
+      <div><strong>Catch 500 · Land 500</strong><span>Shoot a Snatcher that's lifting someone and they fall. Catch them in mid-air for 500 and fly them down to the hull for 500 more. A short fall (under 5 tiles) they survive on their own: 250. Any higher and they're lost.</span></div>
+      <div><strong>Groups of five</strong><span>Snatchers warp in five at a time: 15 in wave 1, then 3 more each wave. Destroy every Snatcher, Husk and Minelayer to end the wave.</span></div>
+      <div><strong>Wave bonus</strong><span>100 &times; the wave number for each colonist still alive, capped at 500 each from wave 5.</span></div>
+      <div><strong>The ring goes dark</strong><span>Lose the last colonist and the hull lights die. Every Snatcher turns into a Husk, and new ones arrive as Husks. Colonists and lights return at the start of waves 5, 10, 15 and so on.</span></div>
+      <div><strong>Hounds</strong><span>Linger in a wave for 60&nbsp;s (5&nbsp;s less each wave, 30&nbsp;s at least) and the HOUND lamp blinks. Three seconds later a Hound warps in beside you, then another every 10&nbsp;s until the wave ends.</span></div>
+      <div><strong>3 ships · 3 pulses</strong><span>+1 ship and +1 pulse every 10,000 points. After a respawn your craft blinks and can't be hit for 2&nbsp;s.</span></div>
+      <div><strong>8 screens round</strong><span>The ring loops with no edges. The view leads ahead of you and swings round when you turn.</span></div>
+    </div>
+  </section>
+
+  <section class="section" aria-labelledby="lineage-h">
+    <div class="section-head">
+      <h2 id="lineage-h">From the 1981 original</h2>
+      <p class="muted">Sentinel borrows the mechanics of Williams Electronics' <em>Defender</em>. The name, setting, characters and art are new.</p>
+    </div>
+    <div class="lineage">
+      <div><span class="label">Kept</span><ul>
+        <li>A looping world with a long-range scanner</li>
+        <li>Abduction: fuse with the catch, then chase you</li>
+        <li>Catching falling people, and the point values</li>
+        <li>Smart bombs, extra ship every 10,000</li>
+        <li>World destroyed, restored every 5th wave</li>
+        <li>Fast hunters that punish stalling</li>
+      </ul></div>
+      <div><span class="label">Changed</span><ul>
+        <li>Orbital ring colony instead of a planet</li>
+        <li>Push the way you want to go: no thrust or reverse buttons</li>
+        <li>No hyperspace; no pods or swarmers</li>
+        <li>Mines can't be shot (a pulse clears them)</li>
+        <li>New names: Snatcher, Husk, Minelayer, Hound</li>
+      </ul></div>
+      <div><span class="label">Added</span><ul>
+        <li>A warning before every hazard can hurt you</li>
+        <li>Edge arrows and a TAKEN lamp for abductions</li>
+        <li>Controller and touch from day one</li>
+        <li>Sparks, shockwaves, shake and procedural sound</li>
+      </ul></div>
+    </div>
+  </section>
+
+  <footer>
+    <span>Sprites: <a href="https://huggingface.co/spaces/cfahlgren1/pixel-search" target="_blank" rel="noopener">Pixel Search</a> catalog of <a href="https://huggingface.co/datasets/Angais/pixel-art-atlas-1.4m" target="_blank" rel="noopener">Angais/pixel-art-atlas-1.4m</a>, CC0, AI-generated. Numbers under each sprite are its catalog id.</span>
+    <span>Fonts: Silkscreen and Barlow Semi Condensed (SIL OFL). Inspired by Defender (Williams Electronics, 1981); not affiliated with its rights holders.</span>
+  </footer>
+</div>
+
+<script>
+const SPRITES = {"player":[{"id":440110,"subject":"fighter jet","src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAA+UlEQVR42mNgGDKAkZH3Pwjj4hPU/H1f7P9XLXb/YRo/rokgzgCY4ud9tv8PG2mANYHYl+y0sBsAswGG3y33+3/VVB6MYYaBNGMYANOQcuPV/zlfP/93arzyX8K47P+EKYv/b922H4yXLFvz38Ev579vZMl/Yz0nhAEgBkii7s7j/8b5u8AaQfjxm09YMcgw37TpEANAhIiQ4n9FeeX/q9fthtsGsxGEQeIwDHIRyDJZVQeEATBDQBLIGOTv39fy/n9f4QTGoMAzljX+jzUK0QMPhp+4G4AN+XWzDB6gRMc/zGCQIaB0QJYBKIbMswd7g2QDsHlx8GQyAOvD8mjcR9fQAAAAAElFTkSuQmCC"},{"id":440113,"subject":"fighter jet","src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAo0lEQVR42mNgGEDwH4rJ0ywnr0y2AWDN+Az4j4axasZlwP+5D57+h4G6O49RDEPWjM2A/3uevAZrNEhd8F/WMue/WlArWKGlhQsG5ucRRjHgv6tb5P/Kqyf/i5l5wQ1AtxGL7WADwCbaOvpjVQiyCRmD1GPYjs8WPX1zFKeDLMIaeMgYyQY4BhmEjAmlgf+4LCAUjVgNg3kDi8tITvcUpX/aAACv3au4SS5GHgAAAABJRU5ErkJggg=="},{"id":440114,"subject":"fighter jet","src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAABAUlEQVR42mNgIBGwMgv+B2EGcgBI4xUnR8oM6JZSJt0AmLP3qciTbgDM1jVa6v9PaqqB2SCaaENgBjx0d4FrhmEUQ0CcfiXF/9XiCv9hTgZhkMbngTZg54OwLIfUf4yYAHFAJsI0l22++v/j73dgGqYRJAeTxxtQzQcgmotWH/yvrBcHN3iRqhKK07EaBLMdpNnIvghsAMhbF/U14BhmCMhADG+A/AvSBMMgpwcLqIIDD4ZBmpENg2uu8QmCRxUMVypooAQoCINsThHXR3gDRBjrOcExTDNMEXpAo4uDJTQ0XMCaFURUwH4GOZsozcihj4xBBqIrJDoXghTFRJQSnVQBH6Du+TLjsRYAAAAASUVORK5CYII="},{"id":440119,"subject":"fighter jet","src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAA60lEQVR42mNgoB9g/k+hZmQD8BqGqVhNXg1JDF0eTfOSZWv+52Ym/UcohBigqW78H9MwHAbMmTnjf01J9n8vN0+wBpBYU3UFmA3CdsZGuAxhBmvqaG7+nxAdCaZBmkGGGSsp/hcRFAIbBMM4DQFpDPY1ALsE5B2QjcnBbhhew6p5w5HL/609Yv8LiqjDnQtyAchQEAYZEhrmhd0AUEB5BGeBNYOcHOZkBHYqyBvIGGQgFkOYwc6EaQZ5AaQQ2clcnPwoGMkA5v+L2nLBTgTZCuKDDEGOe7whD7IZ5CRQDKAmGKKSMjOhkB3kAACdfcIBKHZNpgAAAABJRU5ErkJggg=="},{"id":440152,"subject":"fighter jet","src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAwElEQVR42mNgIBEwMXL8ZyAXgDSvkFf7T7IhIA0gfFVV9X+fmAxpBoAUn1BUJN4AmG3IGKQRRkcK6eI2BKYIGc+RkvtfKiYJZsNovC5BN+S+hsp/Hh5JsAaYS5AxXgPUNW3/i4upwjXDMMEwqOneDNYMshnkBXRv4TQEXfNuOVmsmkEYFjM4NYMUNAlLgjHIC9gw3AAQAxRYIP+CMEgzKMSxRSnWAARxPoVGoziN6NSGHm1kpXOY08nKaXgTBREAAJdZzza6sJrvAAAAAElFTkSuQmCC"},{"id":1196846,"subject":"starfighter","src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAABQUlEQVR42mNgIBlw/IdgsgDH/8t1duQawPH/TJn1f02LLHIM4PjvEtAP1iwkYkKMATB/IrBr9AJiDIAoXvL+2f+tX57/d9h68r9q8Nz/Eoq+YI0wjMMAjv8KXr3/p324B9bsMv8QmC+tFfmfj0cZ7AULz04wBrHRDOH43+ak8T/l0lWwASDNIJtlLXPAtmcvvvG/buVtOJ7moYVsAMf/3+8m//92rw5sGzJG1/xophVYM5o3OP5/vp74/8+v0/9/fdwF1oCs6euNTLDG5V66/83casFiIHlQoEIN4fh/rdjk/4fTQWCDQBpA+O0a9//HEk3+Vxuq/fcWVwTbCvJ/zuTjYAPQwoHjv7J2MNjJMOfD+MhRCQrMJB0lsGtAYYYRkNgxRA6k0TdtOqGoxJ42QGED8hbIVWRkJkgGwuJk6mRhAIq9F2RBs8muAAAAAElFTkSuQmCC"},{"id":1156047,"subject":"space shuttle","src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAA30lEQVR42mNgIBEwM3L/B2EGcgBI4/MXr8kzAKZ58f57pBuArBmvATD/YcMwzTgNAAl+/voTK+YXUEDBGAaABMIjcsDONLO0+w9zMgwj2w5zAdwQECM4NOm/hobB//jMGrgtyAYgY5D66qbp/9dtPQIxBESANMMwuob7hkZw/CXF93+UgvR/Y8tQsCF4DYBpQDYAhJ8H2oBd6OSWiDAAOYDQ/YuO3Qw0UQ1Aj77k6rk4MUiztLQhWB2MJpgO0KMQFo14E1NoXAcYwxROXHcBIyYI5jZkRTBDYJjszITN6QBcKlVOvxkEuwAAAABJRU5ErkJggg=="},{"id":1156057,"subject":"space shuttle","src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAABJUlEQVR42mNgIBEwMXD/B2EGcgBIo6ODH3kGgDRdffh2AAyA+dnM1B1sAMmaYZqW7Tz739u/7P+BI1eIMwSkSEpc5//spTv/xyS3gTWBNL998xyMsRoCcy4IgxT9/P4GjEHs01fv/xfhlQG7BIQxDIBp+v3nJxgfWbEArBmk8fC1h/+v6aj8X64gDXYVVs3KirZgSRCG2Q7SfDkj9/8pNUWw5vae5eBwQDEA2WaQJpABIMNAgQeyda+G2v/M0CSws0FiINwX6Y0wBMQACaxvToP79/at+2BbS0qngDHICyCNbQFG/yvdtcFqQIELNgQW2iB8eusisEYQdvdMhvsXpkZFyfB/dFwxGIPYKAaAQhiGkTViiyGMDIVsC9m5DaQJFFik6gMApKohKticW/oAAAAASUVORK5CYII="}],"colonist":[{"id":40575,"subject":"astronaut","src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAABBUlEQVR42mNgwAFYmUX+I2MGUgBIw7m7r+D4xI3nxBsCUgjSICSg9Z+PSxFMg8R2nLpL2BCYzdJiFv+dF9z677v1JdgAEB9mMF5DkG0HGQCikQ1YtvMsYQNKyxaBFYE0wQyAecMraipx3oApRMaBCQsJxwhIEgRA3gAZgoxBgQgCn60NsRsC0wxSOHnOYXgUgjSAaJA3YIbgNACkEBR1IANAGkEuOSKvCtYIEgd5A6QGpwGwUE5JWfo/wDn5f0Hjhv8uHkVw/4PYeGMCFkjIqRCGZ648T1yyBikAOR/kdJiGzz7ucD7R+QDmVBifqPyArBk5Law9cBvshZCwZuIMQfcrvmwNANlTLGr1H0h6AAAAAElFTkSuQmCC"},{"id":40578,"subject":"astronaut","src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAA/ElEQVR42mNgwAKYmQT+Y8MMxACQwsv3PmPgtQduEzYEppmfRx5uK4gNwxPXXcBtCLJmEC7bfBWMYXyYYTgNgRkAopE1ImOQXOe8U7gNmLfpFmUG2JpXwp2q7jYNQzMIW+hm4w8HQ8vs/7iiEVkOq+bnIXrg6AIpxIZBXnwQpYFpAFjzvXvwuEaO/1svvqOkAxAbIyZAHB1lYzCGKTKdPef/rrOPwa66bysHNwBZHUr0gQAsGkEhDQpQkAEgpx820vjfNO0kWA6mDh4b6AbAJEAakDEudRhp39evBWcslJYtgqtDSQ8wG0GCKP5DC2hTTQ+wGqyJiZhsi00NAAIZdeK4cT7VAAAAAElFTkSuQmCC"},{"id":40584,"subject":"astronaut","src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAABAUlEQVR42mNgIAF8Co3+/9nH/T8DuWCJnCNxBrCzSPxHxzA5Tc28/wQ1X3nzFQPDDNI3KvlPUPP6O6/+iwlao+AZh54RbwBIQ+Ond/8tE7fCDQDJwQwhygDrvjMoLkA2wMVn9n+cBjTOuYbhfJgBII14DYAZEp67ASMWSifsh7OxGgCSeKNv9v/ulZdYY6HIuQUsB1KDEQ7IUddp3wemHyjrgWn5imIw7eTS+r/BeTY8SjEM6Dj48n9waP9/XOkAZABMHdaYQPbvOY0AsEIYrlt5+/8dcy+MVInVkMu33v3/+fkVioYb1tH/f3+6DZYjaADMVph30MXxGoDuFWzi6OoBQ042qOT84I0AAAAASUVORK5CYII="},{"id":40587,"subject":"astronaut","src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAABB0lEQVR42mNgwAJYmAT/Y8MMxACQwubrOf9t93jDsd8+n/86k2wIGwJSUHQ6+T8PrzyG7ZLpZmCM0xCYZglF6/9Tns0DY5OpHf+VdN3BGCQv4mkGdhFWQ0CCIKfCDEi8PA2uGWYACOM1AOREkAEuMxpQNCMbIBlrh98bIAPQNSMbgDcgYf7EFoVCto7/xQJt8dve97wa7EeQISAM0gBjg7wnZmz8vypfH9MQ5LgHKQYF5o/J7v936+n9/1pkCBaHGQBLGyiGwEJXvRoSQCAD1htagMVgNCwNgGisBsCcCjMAPSXCDEBWhzP9wxShY6JjAjnt43Q2Ls3oTgZhkGEwcYK2E4OR9QAA16MW8zN/IGEAAAAASUVORK5CYII="},{"id":40598,"subject":"astronaut","src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAABLklEQVR42mNgwAJ4OKT+o2MGYgFI8c8PRyH45S4w/naijDhDYJqxueDLwlT8hoAkP95bBVY07cO9/y4HVmAY8qnKG7chyAY0PL2E1RV4DUAOPP3wBVgNqPEJ+l+s40ScK9BxYFz9/xRxfdwGwALw6waP/7HVE/8rWyXCsaFl9v/tygpguQc+apgGIGsGKQCxv+8LgOPnIXpgA0Dis9UhbBRDQByQZpDCVjUbsEIdfQ+wZhmnCf/lFWP/18qbgA0HqbuXqoZpAEjzYjOT/zDXNE1cDXHBNOv/n60NwQbA1IFcgWEASIOteRRYAmSDr4IN2EaQc0FsmLNB6uycUrGHAwzDwgOEYa6AOZtg3oA5c6+5MlwxVmfj0gxyYteMdXDvwMRA2NUphThD0J2Jz+kAJdtGHbsTkJsAAAAASUVORK5CYII="},{"id":40613,"subject":"astronaut","src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAsUlEQVR42mNgwAK4OWT/o2MGYgFIsXnfXQxMlCEwzdhc4Dr1CWFDYIpnPf0IxlrxW1AMIegSZAOwuYJoAzSyDmE1QN1tGmEDVG36sGqGiZu3XCDOEHQMEndyaYWzSYpCEAYFKHIM4Y1CEA0CD5T1/n87ZIAijjMc0A0Q16wCGwDCRBsADygcKREkjzcmkKMRGYNCHjl2CKZGkCZkDaAAxBv62KIQ5lT0qCQqQ+HC2NQDALsNDRx1xWTNAAAAAElFTkSuQmCC"},{"id":34053,"subject":"armored spacesuit","src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAABHklEQVR42mNgwAnY/mNiogHb/+8fzoHxm/O5/z9da/x/pcqcWEMgmj8ei/r/cXvY/ydr/MF4e5TG/xJDTUKGsP3/eHfWf3ZWkf/zN14A08j4Qa85YQMezbQCK3byrsYwYK6nImEDDESUwIqVFW0xDADJ4QlQiN9B/oUZgq4Z5ILf3w5gC1CI5k+nUsCKQCEP0oCMQV7rslMGy4HYSAZANIM0gjBIMUgRLAphGKZpcZju/1pLWTCGGsIGVgBzOiwgYZpgNMh2WBiB0gVIPdwAmO2wAII5GYSfz3MEy8kLy8PlUdWjJVuY09HD4MvNSqTAwxMTMD8juwgWsEjOxp0OsDgPLA4KA1g44NQMChxQ+sdmACj0Ya7D6Xzc2Re3HADfdkqyj9p0hwAAAABJRU5ErkJggg=="},{"id":34057,"subject":"armored spacesuit","src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAA2UlEQVR42mNgwAFYmAT+I2MGUgBIAzI4fuEx8YaAFB69/AnFdg0lR+INgWnasPcRWCOMP23eHtIMcPEoQnEFUQaAFHwJM/uPHoAgbGseBZfDaQBIASzQDHXDUPCVW0/AcjgNgYX8lr03/vdN2fwfHYAMefPpK5iN1wCYf39tcPjf/+TZ/5iIUrgByGqwGgByJswAdCAnZQD3Ck4DYCENwuhhABPDGxswzaBARAfrt54hLlnDohLmV5i/CUYhtthANoCopAxzPgiDohJmAMgwmIFEJWNkvxLK0gBxbzlvEDGLewAAAABJRU5ErkJggg=="}],"snatcher":[{"id":378915,"subject":"drone","src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAwElEQVR42mNgoAbgYBP9j4xJUgdiaLmV/zcO7AfTIIzNEJg6ZIxiiIaGy39pMY3/6LagY2R1KKYXbnj03903DSyx8uUXFAySA2F0dRgGwHDmhhtwDBMzjpkGxtJakWCM4U2YE0FhgQ1LyjuAMaGAZiAUBiRFLSjAQJgkjcgGFC06C8YkGwALVJDthgYe8BggSbOeVSLc34Ye+cQbAlIUml6DohibGF4D0BMKiO0bWUKaN6wcE+CKQV4gKyCxsdEBAPYL0ExU+0yjAAAAAElFTkSuQmCC"},{"id":378907,"subject":"drone","src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAA3klEQVR42mNgAAO2/xBMLEBRz/ZfL33X/7Ttz4k0hO1//LE3YD1Q9RABEIja8AjFEEl5h/8gjKwZpAYESu98RHUFSEI/fAFUAxtWDJIDqUG3CG4Iwka2/yqmRf8da4+AsbJe3H90ebyBA9Pc+OkdGIPYqC4jEEjomkFYxaoZv2Y5OW+4M2EGwDTDDIC5AjVgoUBc3AjFAHRM0ABkLyAHIAir2vT9h7mQyBQGMQRkK7LNBAIRPZrY/oO8BfMagWjElpDQ0zzOhIRIyuj5AV9SBumB5wVQQCEJkJqZKMvOABUOFEWkV6RiAAAAAElFTkSuQmCC"},{"id":378909,"subject":"drone","src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAA20lEQVR42mNgoA5g+Y+KSVLH8l9GQhcFYzcEpzqEiXFRWf8xbUHFmGqgDFND1/8rNx4Cs9+8+4wVg+RAajTUrTC9gUsTPsNQ/Ddt6QEwBkmev/H0/76L9zAwSD4wrh6MsYQTxEkghTXdm//zcEqg4PjcGWBMIKYgIQ3S8NnH/f81Jdn/2QKSKAbhj2agJEjRezfz/z8unvz/bcV0sCGxgsJgjQgXEGnAfQ0V8g0AYZDmOnHJ/8ECqsQagDAE5HeQzTDNhJM5FkNgmoi0GdOQ3NpFYEyGZvTchxsAAPPEGhWmvLJYAAAAAElFTkSuQmCC"},{"id":378912,"subject":"drone","src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAiUlEQVR42mNgGDbgPxZMtJr/oiIyYKytZQFnoxkCF7ey9sCqBsxpbV/wH4dN/3GoQXUizHTf4HwwBrkIGcNcicOLEFNBCmxtI7BqRnL2f5yBCVOIDePTiGIANr8TYwCK5u+rjv8Hgbn924g2BFnyf37ZrP/fuzb+j/csRBEn1gAGHImKqHAYYgAAXceKq5537vsAAAAASUVORK5CYII="},{"id":378933,"subject":"drone","src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAA30lEQVR42mNgoBZgYRL4D8JkqQMJrHpy77//g2t4DQHJTfuApg7EcM7r+m976vh/9Rn7/4tIOWE1BF2dqqoXRB2IAHEMmrr/Wzkm/BcXN/oPcyY6BhkOUuccmQ9XBzcdJACzvfLqSbBTkXHao8P/0dVhDZyGp5f+//v3B4xBzkXHOAMbJKi3bj/cAGya9UpW4QwjuAHYNIKwfOIkwgaAFOHDIP+jBB42QwR4NeAKsWGCiQ0WXdiikJiUCjbAdPYcFMUgdsC0tcQbAEpx6AagG0pShgGxtQ2TiTcAl6HYxAHwgfwDTg1mtwAAAABJRU5ErkJggg=="},{"id":378935,"subject":"drone","src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAA00lEQVR42mNgoAZgZRb6D8MkqwUxVFSc/4du2Qam8RmCUy1MAlkzsk3o4hgWgTgB09b+l5CwhWvY+uU5CoaJgzSD1GIY4P/gGhw7bD2JwoeJIWMMA6TdK/4ru7SAaXTFIOx68PZ/FdMiOMYIK5gTQd7AiRV9CccWTMFBHv7/P/bu+f/WSOP/FGl14qIZ5gIQ/Tk94//3Q6dQDMAbzSAJv/JpcJsOyZuANYNwp5QRXBymBq8BMD5II0wzNjUYBoBSGLbEhE8NA1GSdDEApoCY3IjMBwCdi/Y2ef2iwAAAAABJRU5ErkJggg=="},{"id":474238,"subject":"flying saucer","src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAA7klEQVR42mNgwAlY/qNikgDL/9ilN+HYyL6IFEMgmrd++/6/7vRrMNu1bhOxhiA0I7tA173pv5ycNyEDIH5F12gc2A/WLCKijS9MWFA0gRRjw8rawWCsbZiMbAjC2SCceeD2f+OYaXgxyEUgg6CGsIAFkZ2OC4PUyUvbgjGSAQxwQwhhmGYQxhoOuPyOjnHEBsv/AHVVsCQokNAxyMkweZzRuKHGGyWqEBrQ+Vg0H5ga+z/H0RBJAcv/STEWaBpY/q8pcMDu/+50GwzFO6YEYoiBXIFwKZIEqu0QscYAXSy2sfwv8TTENAC73wiLAwCS1CI61xY+pgAAAABJRU5ErkJggg=="},{"id":474252,"subject":"flying saucer","src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAyElEQVR42mNgGLSAhVnwPzImWfOGS29QMNGGgBQue/DuPwzMOPQMjEt7LhA2BGYzumaYAQQNQXY6SJOcnDccEzQAJKFpkQXWjKwR3RAQjWEISGDO18//fVff+i8i5YTTABA2r979X0UtEmEIiBG14RHYABAGsZFx2vbnKHyYQXBDYAaAsJFx8H8BLimwLSAMSwMwPkgOxEcxAOYKmCJ82KnxCqZm5HDA53cYxpkyQYIwk/FhrLGAnPaR+XbhM8BRiy5OUrImpBgAfv4aEFGcunkAAAAASUVORK5CYII="}],"husk":[{"id":645921,"subject":"insectoid alien","src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAA30lEQVR42mNgQAHc/yEYF8Arz/3/mq4WGGNXREgeyQZMRchi+FwIVZwirIakGIIRYgQ0z5fRBisG2fipowyMQWyQGEgOr/O7pZTh/oQZgMwHYZAaHIZw/+fhUPgvJKCFoQmGQfIgjNeA5y9eg2lsmmFyeA2AYVy24zAAEk2egnpwRaAAA/kXhEFsmDhIDVo0IzTDosyKTxcDI8tHCukiG8KNFLKImABpQjYQNQa4/z/W00YY0Kem8x85FWImGm542kC2CMUbMPqOlTlOA0ByyGrxJih0bxFIhYSyLe5MBADGUwF4Tvqe8wAAAABJRU5ErkJggg=="},{"id":326842,"subject":"cyborg","src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAABOklEQVR42mNgQANMjDz/8WEGfACk4OWXnxh47spD/30jS/5raLjgNgSmGQYKhUQxDOgQlfhvaRmGaQg+zTADInmFwQZMmrkC0xB0p6Mb4O6b9t+Zix+sGcTWNfDHNGDV7utgxSCbkDU3NEyE2wjDOA3YduTmfwsuEbBTYQbYOaX+dxWQ/f9t/e7/08WkwPIg9bmFUyCGwJxf0LgBI8pqujeDaZCmlYLC/z9bG8INAHkHxQAQLm1YjmIDSAzm/EARcTCGGQ6KFbgBDZP2wQ1ZpKoEDjAYHznUkTFKmoA5F6QB2f/I0QgKCw1uIXAsYE2V6C4B8bk4xOEYZAjIZVNk5LCnRmRXgDQgg/vvvv4XFVIHe0dRzgx/cgbFBswVII0wDIpmrMkYlyEg14C8BMIgtq9fC2HNhLI0NrUALiq45S+JemAAAAAASUVORK5CYII="},{"id":326860,"subject":"cyborg","src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAABKElEQVR42mNgwADs/3FjgoD9v5ys/n8v/5j/MLauph2YX9qwnJBBCM0gLC+t8j8wIBussaV93f+tG47/f/LkGZiNxRBUzSDMxSGEIgYyaN78/bgMQTUAm/9hhuSXzQK7BskAiGZkvwsLyPx3FZCFY5AczBAQBhkSk9wGMwQz4EqlFf5/m7wYjI9F1qIYAvKahrYRkkvRDAApfi4nA9YMokG4UU4QbgDIdSBDkGIE04AvaqpwzSB+t6wU3AAQDTIEpwtgXoBhW1EFFM2wcICJYU1AIBtgAQtTCPJ3RETK/7ae7eD0gRGNsABCSCKwrW3E/+rSarDBIEPQbEcYArIFZAgs9YFoEIYFGhanY2Yi9BQJwlnpNXBD8BgAMQTd/8jhQEAzMdkZUzMAZqNDWdAP+s0AAAAASUVORK5CYII="},{"id":326887,"subject":"cyborg","src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAABHUlEQVR42mNgwAIYGVj+o2MGYgFI8dylm8FYTNUUjokyCKTg4dPX/39++ww3IL6wDY5hBuHUfPzEWbBmEJ60cD1YMbIrQIbgNQCkCaYZhPklNFHCAadXQALBwTFgTct2noUbABJ/o28GxyB+aHrN/4UbjqMagmxAe/8cFAMeKOv9//2q7f/Hyky4KzC8gs0AHl55uAt+THYHGwTig8TNrL0xDYBJgvyNbEu2gCQcw9RgjQ2QQGZZ+/+uGevALpA3cIC7AobtfVJwpwdk00GaS2qngjUgpwNYrOBNSNwsPGAMUgzCIENhmKiUCPIrLNpAUQrDIO8RZYCuhQM4RkBhAYoRkEaQd5zs3YgzAOR8eTkNlCSMnKGIyo24MDb1AISuJ2nldKWIAAAAAElFTkSuQmCC"},{"id":645886,"subject":"insectoid alien","src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAABD0lEQVR42mNgwABM/yEYG8AljqTAxcMfhwFM/22sHP8TMITpv7qxLhZFRGmGKBQUlUZTSLRmbIZAsLCSPGkG+EaagLGmnjQYIxtGMAzcA1X/Z5Za/K/d4A1mg7C1ldJ/Tg6+//quGmCDcRjC9P+puc7/74dOwTWCMIgPEk8VkYMbAhLHYgjT/1JpBbBikI0gRSDbQPw2ZXm4ASomCv+VZQXBBiEZwgSWANEghSADQNjYGmIzCIPkQAaAAhjNAEiggSRhMYAcC+h8kGaQWhANNwAW0rCQRw91kDhCA8K1cANg8QxyMrZUCEqd6K5Ci1IIB6QQ5hWEJHryxpuwIIp1LRz+IxuKLXnjSVBMpChmAAAJ/dPsWu/2wgAAAABJRU5ErkJggg=="},{"id":645889,"subject":"insectoid alien","src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAA6ElEQVR42mNggAPG/wiMC+BUw/jfqPEoHGM3BKHGsfYIdkNAWEEhGKcBCDl8rsRqCD6D8boCgYmwnfG/uJTnfxExi//G+bvA2Hf1LTAGsUF+B8mBMFb/ixul/U/b/hysUIBXA6yp9M5HMIaJgeRBGMRGMwRigHrkMrArYAY4L7gFxiA2SAwsrxyO3QCQIMgQmAKYN2AYJg+isRiAMASEVayaMQwAieHRjDBExagabiOy7aBwUFZLJS4qYbaBvQR1NkiMCM2I6ATZHL7/PjjULTJX44o+3IaAnAvzApFOx24ImZrRsy9uAABlIutK2zNuFwAAAABJRU5ErkJggg=="},{"id":10082,"subject":"alien invader","src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAy0lEQVR42mNgwAGYGDn+I2MGUgBIQ0DzPjjWtMgi3hCQQte6Tf+3fnkOxjBDtNzKCRsCs3nrt+8ommEG4DUE2dkgA0CuwGYATkPQ/Y2OYZq1PboxDQAJSIjo/efjViMaww0BMZx5xf5fVVX9/6mjDIxBbHy4T0wGEb0gAiSArABkA7omZLE6ccn/Vny65BsAUo9hAIgm5HRk52M1AOQ0YjBOA0AYOZSRMbo43ADkjANjL5KVQ4lrEHuKjByKGrwpkpABRGUodANwaQYAOiM2U8qXxvcAAAAASUVORK5CYII="},{"id":10114,"subject":"alien invader","src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAmElEQVR42mNgAAOO/xBMLEBRz/H/hrQMGBNnCIZ6KhmAqpmDIB+PAdgNxKMGnyQCEzQAJgCiv3a3gTFMHBljDQM/QTkwRtaMywAQhqnHGpXotuASQ9GczSf4P1ZQmGgDQGpBeuBegHFwORmbYVgNQHYFLgxSg9MAdDY6xq4OJaURbwCOZA9RBMPIGguFRMGYiPyCzQbctgIA0uUpS+GAwSgAAAAASUVORK5CYII="}],"hound":[{"id":474247,"subject":"flying saucer","src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAA1klEQVR42mNgGKSA9T8mJkGzw5Qr/2c9/fj/96u2/0aNR/+rWDUTawhE85L3z8AaYQbIOE34L2FcRowhEAO+3csHY5AB36dZ/3/fakbIAIg/VYPngg0wb7kAtvnXZn+w7TAXCAloYQsT1v+xS2/+73/y7L+EdNB/jaxDYM0gDLIZpBlkMMwAUHighAnIRpBmEAbZLCZojRPDNIMwiA82BGYbSDPM6bgwyBUgjGIAiAAJ4tOIYgjQm4iwQAoHkIkwG3Bi7JpRYwKkABcmMlViS8YkJ2c6AgA26f1QwYWujgAAAABJRU5ErkJggg=="},{"id":474047,"subject":"flying disc","src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAj0lEQVR42mNgGH6AmYnvPz5MUOO7+e4Y+Eu9JhxjNQgk8LRMHaz429luOEbWCMN3g2XAGG4IiPG+1QyvJlwGgQ0BETDB73srwXRTihcYo2tCFkcxAMTBpRCX+PNwJYQBsyylwYY8S1Ul6HSQd0Fqu4zEUcMBJADCsEDChkEWwNRhjQlkg3BhotMDyQlp6AIA7NQS3v0rujIAAAAASUVORK5CYII="},{"id":474051,"subject":"flying disc","src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAtklEQVR42mNgGK6A9T92TKTGrxs8sGICBrH+/3w9EYz5eJSxYlSD0DT/fjf5/5/vK8HYUV4eK8Z0DZLNMM0g/PVc2P9vx33BNAiD5J8ttYJrnpdk8X9Fuj3MEFaw4l/P68CKYBqRDQDht8uc4JpBONBKCWEASBKkOTPaFIzvd9ij2H6u2Q0sjsMAiDdOZRuCBWGGIPsXJnan2hSsBk0zahTCFIAMhGGYGEIj3jSBKxERnZiGGgAAa0ADaN0fl0IAAAAASUVORK5CYII="},{"id":474239,"subject":"flying saucer","src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAABEElEQVR42mNgoB1g+4+KSdTsMv/Q/6hN58DYtW7TfxIMZPv/79+f/9tfPQZr1vboBmNll5b/enw6cIzDEIRmkAtAGGYACKeKyP0/oq34/4yC3P88MRl0Q9jANh5+fR+u2ThmGthmkGY/QYTmPw9CcRsAwiDNBqkL/qvalv1XMkyHa4YZME9EHLsBoMACYZhmkEaYs3fLyYJtBrGxar6mq/V/igxEA0wTOgbZDFKjzK+OacCnjrL/t510wDYha4LZChIH2YxV80MnK7BmmGJkjcsVpMGaQRphmtEMYQMHDCxwkNkwjYh4h2gGiaMYAEscMMUwNsImZCdjTYmoyVScRx6MycgDCANB/qfAAJirCAMAo0waI3QEUW8AAAAASUVORK5CYII="},{"id":474241,"subject":"flying saucer","src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAABGUlEQVR42mNgGLSAhUnoPzImWfPcB0/huGjRWeINgWkGgYOv3/5ff+cV2ACfkt2EDQEpAGmAaf6+L+D/lzCz/63ymv+907eDMU5DYH6FOftTr93/J+4G/2er6/3X49MBY9foBdjDBCQAAt8/nAM7tWzzVbCtIAzTDDPgfZUV2GC4ISAGSCMIwwwBORWkGIRhTgfhTxdKwPjjmoj/t510IIaAiA+ng/7/er3xPzKAGYqOwQakmqEasN3JGuxnkEG4NILwjwUeYOdvVjP87yhkhuqNTG2z/2tsdcEYpBBkIIiGYVBswDSiaEYOyAo1P7AETBE6RlaDMyrhAfug/P/vO/H/PxY4gqMSWY7oFAkKLJCzSc4L6IkLnxoArvlLDePw62wAAAAASUVORK5CYII="},{"id":474279,"subject":"flying saucer","src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAw0lEQVR42mNgGM6A+T8qJlHziR8/wNh39a3/+qFriTEEYRtIE0iz84JbcANUbcvwuYj5/7PyYjBuldcEa4RhkGYQVjJM/+8pIPS/V1Dkf7iwGLIhEM1N2x7+v6SmCMa+Cjb/nZXdUTBMM8yAVBE5mCHMcI0f0j/C2dgwzIA/N8NRDcgWkERRWHoHYVDJ7Sg4+0uY2f9qITGwehBG8QYIzxMRB9uAzfZbqkpgWxEascYKRAKkEORPdExCmkBPRGQlpqECAEzoy2lWqXpfAAAAAElFTkSuQmCC"},{"id":1170957,"subject":"spinning top","src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAxElEQVR42mNgwAOYGPn+gzADOQCkseDEq/966bvIMwSkyajx6H9Zs37SDQBpiD/2Bm6AhHQQYUNg/gVhE6dpYAPMWy7ADRATtP6PrAarc0HYuu8MGIM0ImMFzTIUDDcExABpAGne+u07CkY2FEaDNMsaNIMx2BCY7bg0I2OYASiuwOYCbJpBGKYRxQXoYUDIZpBGlDBADkiYyXAMC0SoJlBMwGIDb1TCFKJjopM2spdAtuO1FZ8hoARFlmaYAUQlYUqzMwCdJg5kQRQUigAAAABJRU5ErkJggg=="},{"id":1170959,"subject":"spinning top","src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAA8ElEQVR42mNgwAOYGTn/gzADOQCk8dOplP+PagzIMwSkCaR5j54i+QZc91T6v1xBmnQDQBoe5Cn//7gmAmxIqZgkYUNgAQbC71t0wJpBNAgfcJGFG4I1YEECd4NlwPi8siKYfhgrDxcDYZghMAw3BMT4usvj/6+ryWD8fYXT/0OSklgxyFAYPmkCDRuYk39dq/v/491WFAwS+3W3G2wBMgbFDooBoABDV4SOP0w0A9sMUgvSjBK9MENAGKYIHYNiA6QRIwzQYwE5oLBhgskbJAmKiWNKsnAa5Fyi0gJ6QoKFOEmakQ0BRSkIU5QjCWkGAJnAHCrhi7bwAAAAAElFTkSuQmCC"}],"minelayer":[{"id":1156519,"subject":"space station","src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAA90lEQVR42mNgwAuY/kMwWYDp/8fKzP8X9TXINYTp/xkFuf+pInLkGMD0PzSu43/3xrtgWkHSghRDmP4/D7QBOx/kgmtKsmA6SliWGEOY/q+QV/tfKq0AxiDnw7Adj8J/NW5lXIZAQhsUYCCbj2hrgDHIZmQMMtSbV+I/Wuww/f+cngHGvltfghWCNIPYN2urwHyYOMgAOU3f/3px7cheYvrfICcLxjBbsdkOwiA1IBdIiOiBMYorYBgmiQsjq8UIB4SzmOABCQtMAqkSEvqoCpiwORW7ZpCfsSsiOi8w/ff1TcfnP+JTICgtgPwN4rOxCJKeB0h1AQC3aMzBbm354AAAAABJRU5ErkJggg=="},{"id":1156489,"subject":"space station","src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAABDUlEQVR42mNgwAs4/0MwWYDz/8cCx/+LVJXINYTz/+xFJ/6LS5uQYwDn/7o7j/+7zD/0Xy2olVhDYP7l/K9p5Po/1sMB7IUCV6v/uoIKSIZgDRdOuE3ICkPjy/8ryOnC+ZLyDmCM5iLO/5uPPQRjVBsgLhHil8MQz66d8V/dOQtmCOd/m5IF/zcsLIQbBMKrdl/HwLHVE8FY1jIHyWVQV8gnTvr/frojOOC+bvAA0x8mmv2v71/03yB1wX9p9wqwPMhVaJpRAxHkNDOnqP/2PilgTSDblK0SwZpAfsehGdMgkEIYxgwHItIBCINcgqqZxMTUOWcfONrITso/Tyf+P56lRb4BoPimwAXEZWcAUzDYScMpcU4AAAAASUVORK5CYII="},{"id":1156496,"subject":"space station","src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAABLElEQVR42mNgwAu4/kMw2YAiA7j+x8io/zcWkCHHEK7/ezXU/h9TkgVjb14JUgyBaP4UGg03YL2sNCmGcP03yzv6v/HTu/8+F179166//F/da8N/CUVf0gwAafTd+vK/ed9dYg2AhTgX2Nkgb8DCIVxY7L+9sOh/ZDUYmrUjDv+XkLCFKwD5GYbV+eXg4qqqXmC1SIZAAg3kZ5BNMP57N3N4IDbIycKj87KJzv+cVzfhasEGwBSni4j/V1ZL/Q8LB5BCUFjA/K+pF/H/nJoqXC3cAFA0gQRLxSQxvACyCdkLsxWUwYagGAAyGRTasDCAeQEWiCAvwAIRFAbmC64jhRc0HECGIAS4wE4HhQvIYJi3sKuFCiKcCeGrWDWDbUKNHWxqUdIB9nSBXQ4CAOfh/hPUajCBAAAAAElFTkSuQmCC"},{"id":1156500,"subject":"space station","src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAABLUlEQVR42mNgwANYmPj+gzADOQCk8Xmgzf9KBQ3yDAFpipvS8Z+HV550A2BO98qy/M8vofmfJK+AFBZuC/5/+En7//gdqf9jl0f9t8/x+a+upoffEJgtIOxd5QzWCKJBWMrK5L+YsfF/ZDVYbd3wbiaYNvKyBWsAYZBmkDdAYREwMfC/nLcNWB5uCIgBkgBhkJNBNoIMcaqLBNMgHFwS/D9XVRKsUYtX4L+Zuvx/oxRziCEwAy546MMNghkCwshiIM0gg0A0zEtwV4BMByn6Ps0abMMRO02wRpAGcCAa68I1g7yFNRxg/pY1UAP7FYZNRYXgGrFqRjYElnBgAYecDggmKpCkmbU3XIO8gQNcEwiDXEIwQcEUwJIyyBBksTBlBeJTZKyHA/m5kdjsDAB06d5m0lQppgAAAABJRU5ErkJggg=="},{"id":1156503,"subject":"space station","src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAABHElEQVR42mNgwAs4/kMwmYCbg48UA9Bt4/ivZ5X4nwRXcPx/o28G1xCWM/G/mbr8fwE+WTAmwhCO/+qatnDNfy7G/g+MqwdjXQP//6JimkiuwTCM439ayUQwBinWFeICa7QUEgazQWEBw7Kq7mCMZAhEc7yOxH9bGQGw7eLSJmBFIBrmBZgmaS4+MAbJQQ0BOtnJ6P/25rD/WffK/rfHOfy3dfQCGwTDID7IcJCLQK74oqaKHi4cEOcCnQ+iP/u4gzWBFMJoUPiAaFBYgFyAFg6IwAEpAPnbTN8A7GwQG6QBNTawxggHUuDgxojYwJuQOP6v8zKBKwZ5CyYP8gZRBoCi0dw7DR4TyHJEp0wfLTlwGFCQofD6mZwMhgkAWmrOOgY2P1wAAAAASUVORK5CYII="},{"id":1156510,"subject":"space station","src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAA4klEQVR42mNgwA3+31JV+g+iGcgE/509MigzwMwpCmbA/1bZGJIM+i8hqY2CSXHJ/7bp2/7n1i6C47Ku1f/NrL2JMgTDZlJcgmIrsu2wcIBZgM2Q/y4Bxf93nP0CxqDAA8UAiIaxkTQiY4jmQ5KS/8+Ki/9/E+kFpkEYlAZgGMT35pVA0WzIBecz/H+urgpWCDMAWTNSWkDBSAYi4hzZyTAM8hpyesDmBbgheOIfr0YMg2DOA9FYDMGvuWLaFniog6IR3SWEkjQ80JANgPH5hKTxJ6TQuA4UDcgGgLCBqh6GAQD7xu52O28iRgAAAABJRU5ErkJggg=="},{"id":1156530,"subject":"space station","src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAA30lEQVR42mNgwAOYmXj/gzADOQCk8VOv3f/zbjLkGQLSlFs45b+eSRTpBoA0/Lw+5f/3FU7/v9RrkuYKkMJfRxv+f1lgDtYMM2Camhx+Q2ABtt9UHIxBmkD0JmNRMLYRUANjrAELczIYX+kA0zDbkfFCLVE4hhsC04zsZHwYZgDcSyACpDli8g2wguiqA3B21r0yMIaxYQYktV1ANQDkX2JsB6mrUhAHY5RAhRkCCzxkjCwGC0gXaGBijQUQdoEqRMYuSDFAME3AXARzQbKMHHmpEZSMbbA5l+Z5gZTsDADLVxNQ7HYgdgAAAABJRU5ErkJggg=="},{"id":1156535,"subject":"space station","src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAABHUlEQVR42mNgwANYWIT+gzADIQBTiKwYxM5TVPz/tcgQQxzDYBDHN206XBBEJybV/9+w59L/a3df/j9z5h6KHLJauAGV+x5i2CQvLP8/NLIIQxxdLVgwPHcDhkJeYf3/i5cexRBHVwsW9Ihox1C4SlUBaxigqwULWhr4ovjz7cyC/1ev3wOHwZt3n1HkkNXCDQAFFMy/mnoRYGcWbnj0/8vCVLBce8/y/7DABRmMYYCjXRSKLZLyDmADQRikCVnO1SkF0wCQbdhiAeQadHF0tWDB0KQJGApBroA5HVeawekFkNNBCenn5SsYgYisFmdKBKUBS/8SsAvKGuYSTonoUQNiRwnL/j9spIEhjtUF2HIeiG9omf2fUMajKDsDABzrA+hP/KyfAAAAAElFTkSuQmCC"}],"mine":[{"id":1166281,"subject":"spiked bomb","src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAABVElEQVR42mNgIAhY/69xUPi/wUvzP4jNQBpgBWu05pUE4ylWWqQYwgrWoMsnAtXE+t9VQJZYQ1j/p6Qs/a9r4P/fxaPov5y0DtwQmME4DEEoAmkS5ZeDY2S5YAkFbAaw/v/9dB5YcXBoPxhraLiAMbIheG0HKapo2vW/adrJ/77iWv+D1U3+u6iYg9mYLsFigLd/GdgAkCaQa34/aAbjHwcLwIahGoKmGaQJZACI/nl9yv9nCYb/f90s+//721EwG2QIKBZABoCiFMkQ1v9fLkwBJxZQiIMM+LHA4/9VLWmwASAMYoPEQBpBBuQpKoINRTFEkUcSHG2gQANp+L7SH+4FEBskBvMCmgtQAxGEQYaAND1zVIMbBrIAJAfyBs5AjFVRgoc4cqDBxBCacRjwqcobLAlKvjAMci6MDctYeJIyK0qK+9yb/n+vufJ/dHGSciMhDQAV2xY4sNJiRgAAAABJRU5ErkJggg=="},{"id":820799,"subject":"naval mine","src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAA0ElEQVR42mNgwAtY/kMwWYDlv0dE+385aR1iDYHZhsAgA0RFFf5jk8NpI0gDiAZhZ4+M/3omnmCsqmkOlgPROA0AKQiN64BrQsYwQ9nZ+PG7AKTYP7wW7hqYAbCwQHgJi/9hBoAUgTSAbIMZABKDYbRwYIE7D9nJyJrRDQDxjS1DYYawgG0DYWx+x2YAqkuQvIBPM7IhOKKSBRxFIJeAvAPjwzTBxHAEIsQAkL+RAxDduYhUicMA5KjC5Wc8SRszucL8TWRSxjQQ1QAycyQhzQC9UeV/r6kCNAAAAABJRU5ErkJggg=="},{"id":820803,"subject":"naval mine","src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAABUklEQVR42mNgAAJGRp7/DFgASByfHJyxZEINhkIQ/9e7A/9fbwrFKgfXAyLmdFT8P7SiFa4QZvPBMgswRnYJiAaptbP1RhgA4oAMgZn68nAs2HYY/nIqB+4SkJr40ID/poau/1G84eXm+d9LUQpDM4gPwufbbcCGgNSgaEb2F0jhzyfLwZLvT3bCNcO8sTNT//+ZMmvsAQszAOZfGB9dDKsBIAGYE7/crAQrANEvN/vAMUgMJA8yoMJKDdUQmAEg264tsAUrRNYM4sM04zRgXoD6/+fzHMESiRrycENA/oZFKUhzg6MKGGP1BkwxCIvzicCdDsMgm7FqhkclMIpALoEFFggjxwDIAGMxWey2gxIIKEGBFIBsASmG2QjDIDmQmrWzO/9j5IW0ALv/6mqWKE4GaYDZCMMgNSC1KHkBJAjTjOwqmCvQxUEpESMpYwsYYsQBpV9xT1zTXkQAAAAASUVORK5CYII="},{"id":820814,"subject":"naval mine","src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAABGElEQVR42mNgwAOYmQX+gzADOQCk8ee9mf/vd9gTZwi6bSD28mjr/wkamhjiWA0ECX66UPIfpuDb8dj/Py9kgjHMFSD8cXsYbgMKzczBin++PYWKoYZUW+j/D1HSwu0lsL+hGkAuOJZoAucjuwSn/8EKgRreT3cEa3aRVodrhhmQa6r+HyUcYKGNbMDCAN3/2kJqKJrRDYDpARvwbr472H8wp/9+OBlFI0gMJA8zABQOcO+ACJipIINAiu9Um6IY0OdpBqZB3oKpjVcxRvUGCIMUgEwGGYSMQYpBXgJpxggD9MCc4KABdgEyvlJlDsYwzTijEKQI5iVsGFkNVgNgyRaGQc4GYWQxFL8Tygsg20Cpk6i8QG52BgCBwFmVULaIgwAAAABJRU5ErkJggg=="},{"id":820821,"subject":"naval mine","src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAA2ElEQVR42mNgwAFYWfj/C4qo/wfRIMxAKgBpiph847+8YTBxBviU7IYrhNmq7pyF4QoQrWyV+B+rjU5Jk/7DaGwYJIfXRTDNlTve/HfM3whWDNMMco2EtgthzWlLnv03C2n4L6tmgeIakLNBBmA1BOZHmGKYv5GdD3INsgFwQ8AK0+ajOBcdg1wFCwOYASguQXcBOkaODQwXIHsD5kRkzSC/I2smGJAwRbgwwUQFcx4uTHQy9vKP+V/aOf2/uYML3Ask5YMJi3f9zyxrJ88AmCFka0YPD3xqADmE6AzorAw8AAAAAElFTkSuQmCC"},{"id":820833,"subject":"naval mine","src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAABW0lEQVR42mNgwAOYGHn+gzADOQCk8ffTef+vtTsSZ4ipqNB/ZBtB9OU6u/8R6uooYiDMyyr4H6uNXx5M+P+w1w2s6Ne7A3D8fV/sf5g8XhepCIr/XxWl/v/PjwdgDNIA0gzCn7Yn/N8Xo/MfpAavv0EaQa7wVRSHG+AkI/6/wkrt/9tlTrhtBzv7Wh3YAJBmEB9kK8wAkL8vlBv8d1FSxTQEFmAgDSBbf38+DTYMZgAML/RUBxswzUMLYQjYplMpYBtATgRpfD/dEYxhGp+1mYDxBi9NuAtArgEbAiJA/gPRoED6tN3vf6q+HNjZMM0geVA0gwIYZgBIDdwAkEKYv0GKYGkCFGUgA2B8WJoA0cbS8mjeAPoXllBAfkXGID/DXAkLL5SABHFATkZOcZYSWmBbQBjERpZDsR0mCLIJWRBmE8xmZHF0MXhMoCuEuQBdHGtyxpbCcGVnZDEAY0FH8RbMwGgAAAAASUVORK5CYII="},{"id":1166277,"subject":"spiked bomb","src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAA+klEQVR42mNgwAOYGfn/gzADOQCk8de7A/+/ngsj3RCQhi+Xcv9/vp74/2muzv82E1nChsCcC8K/P58GY2QDQGxkNVid+2m7H5iGYZDzYRhkwKsWOzC9yl0ZtyEgm2EakDWDxEHyIEOwagYpAil4t90NjEG2IBuELI7TAJhCkCIQBonB8Pkozf+5WgpwORRDQJyD8nL/HzpZoWhCx9uDtP/HC0j9z+YTxG7A80AbOAbxQfisvDKchmnGaQCyIeia8RqAbggyRtYMwjgDEZTy0AMOFo2wgANhUDROsdLC9AIogEA0smJ0zbBUiNMV6EkaOdUhayA6cxGTnQFS0nQD6zQ4egAAAABJRU5ErkJggg=="},{"id":1166311,"subject":"spiked bomb","src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAA3UlEQVR42mNgIACs+HT/uxlowrEsh9J/BmKBGrcyXBMMk2AIy38Qlhaz+A9hQwCRhrD8L9zw6L9Pye7/0VUH/isZppNiCMRmkCYhAS04hokTMIDlv134DDgGGQLDqAZBDAEFMIbmtCXPwNg5bg2KAaq2ZRiGYLUdZgCyZlyuAIMZfFP+u0YvAAcYSBHMZmyu4OeRB6uDqQXphdsOkkRXjEsMhLF4gwXDz8gGYMYIljAASWLzO8ggogyAeQWkCF0TtvSAMxXCFIMCC9kgAhqxp0ZEgLEQnwthAEdoowAAoVHvvswMo94AAAAASUVORK5CYII="}],"pulse":[{"id":718465,"subject":"lightning bomb","src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAmUlEQVR42mNgIAJ0zjv1H4YZSAUgTaL8cnBMkiFTp10Fa0IWI8WQ/0bGwTAD/iMbABInZMj/mMhZYJySshSsAd0QdJdhGKCv6QTH6K4g6HRkzaQaAlYMi7I3z+vBmFhDUDSrKZtgNQCfIXADQPSvL3XkGQDDMM0wjJyYiDIA3SCKDEDWTDAgkRWmFc4hSTNWQ0jVDDcEB8YAAL145TNWerDEAAAAAElFTkSuQmCC"},{"id":718466,"subject":"lightning bomb","src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAtElEQVR42mNgwA/+E8D4NRc0bviva+D/39QsEo5dHHP/S0jYgtm4DIHbANJMjiv+h7SfwsAmTtOIcjbYAJATsWGi/G2RuRonJmQIWNGspx//997/8r/gxCuIJukgFANwGQJWUHoHohmEQXw2FhEMF+AyBMUAmGaSDQA5O/PAbbCzYQYgG0TQAHSM7gq8BqiYFmE1AJtmnAGJbIht0T6sTicYlSBDVKyawZjsxERJSiSUjTEAAM0XIEtKF08OAAAAAElFTkSuQmCC"},{"id":718467,"subject":"lightning bomb","src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAA8klEQVR42mNgIAz+o2GSwP9cU/X/FVZqcEysIf9hmpFt15ZQ+T/TX4ugIf/b++fAsaNdKLKG/0rimgQNASuCYXEeeXTF/zXlrHAa8N/DzgbDADRDcBoA1lywOACMzYxNwBikGaQBZgiSZhQD/kcGOvyfudfv/633HRgGfC0yxOYShGaQQpAmdM0gDNL894Q3cQaga/7WbPf/z48dcANAhuH0Owj7eFlhaIZhmCFYDQCFNrLNIAzSALLxz4NQMIaFA87oQ446kGYY+/c1z/8/Jrvj1Qw3BBZQIOfD2DCXEJ0HYBqRDQOJg1xBdA7EloVxGQAAf5sL3lwOA7sAAAAASUVORK5CYII="},{"id":119117,"subject":"bomb icon","src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAA9ElEQVR42mNgwAFYmQX+I2MGUgBIg8f59XCsX1pAmiEgxfIVxWAs4eb/X0TMgjgDkJ2MzQC83gFJqE2ox4nFzLzgGMMQZM1/fz8B4/prq1EM0Jrf8186JgrsGgxDYAbANIMNuDsRwxUw76AYAGKATEY24PiHg//rn2z/73JgBU4D4IYgGwCyFYyBzkfXHHB3J4oBIDaGATCMrhmEP357gRIGWF2ADYNsBmn+9+/7/2mPdoENx4gNEAPkJGwGaGWk/BdSswVrxrAdORZAgiCFINcgY5AmEEa2GWdagCnGhmEa4YGHLymDFMEUI2OicyZ6VsanEQA0gF5dGBQBuAAAAABJRU5ErkJggg=="},{"id":119120,"subject":"bomb icon","src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAtklEQVR42mNgIACYGHn+9/tpgDGIzUAKAGkoMdT8ry2kBsYNjirEGwLTDKJhmGhDQAqS3r//7//g2n/L1iVwDUQbApK07d/239Aj/7+4deR/cR55FENMRIyxGwDTiIz14trBhiBrALFdlFRRDYFpnvbhHhwjGyTtnoxhCJyPTTM2A9ANIdp2ZAOQwwOnAeiaiTYAH6bIAJhmvAaAJAlqRksTWA3Bh3FqJsYQgpqRDQEpRse4NAMAYiww9Pxsz7oAAAAASUVORK5CYII="},{"id":119122,"subject":"bomb icon","src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAuklEQVR42mNgIABYmPj/G3rkg7Glf8l/EJ+BWADTDKJhGMYnWTOy+G0nHfyGgCST3r//7//g2n/L1iX/5Q2D4RpgBuA0BGYjSBMMCwlowRW/VZr0H6crQAJKZTOxYgkJW1RX+JigGgDTDHL21i/PwTS6AdLuySiG4NSMywB0Q4i2nSQDsGkm2gBcGBQTBA0ASWDTDBKHacZpAMwQrcAEOFYLzUOxGa9mZEOQNZCkGd076JjkXIiOcakFAFFGGr3/tXzFAAAAAElFTkSuQmCC"},{"id":119129,"subject":"bomb icon","src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAmklEQVR42mNgIBlw/IdgsgDH/98fu/9fnOxNqiEQW9cUOPxPNdGFYyIN4fgft+Dkf63AKf+NpeXBmkKUtPBphvkRgUGakTFezeiKQVhcyhMF4zAAornuzmMwdqw9gtUgnJq1PbrhmrEZAJIn2oCCE6/wegWLIQi/Y3M6SQYQ0kyWAUTEAgdYgoIoRBiCDxORdDko0Yw7KePTDAB4tAPiwPCpnQAAAABJRU5ErkJggg=="},{"id":119144,"subject":"bomb icon","src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAuElEQVR42mNgIAGwsYr/h2EGcjS+arH7/+d1GRgTbQhIYemdj/89e6+BNa3zMvn/Y47B//etZrgNQXYqCDd+evc/fP/9/2Z5R+GGgDBWA0CCIIXIOGrDo/+WiVv/69t2/pdSzfuPMyxAAg5TroBtg9kIwyCNyJqx2hy06DHYuchORjcEr7NTbrwiaABWQ7AZgK6ZKAMIYYoMgGkmywBkzQQDkpBmnAbADMGmgSjNhAwhKRei5wV8GgEzU0A2eMRj7wAAAABJRU5ErkJggg=="}]};
+
+const SHIP = { slot: "player", name: "Patrol craft", text: "Flies either way along the ring. Its laser fires a long streak straight ahead. Pick the shape that reads best at 1×, the size it plays at." };
+const PEOPLE = [
+  { slot: "colonist", name: "Colonist", pts: "500 + 500", text: "Drawn at half size (8 px). Ten live on the hull. Catch one falling, then set them down. Mockup colonists return after a while; in the game a lost colonist stays lost until the ring is restored." },
+];
+const ENEMIES = [
+  { slot: "snatcher", name: "Snatcher", pts: "150", text: "Drifts over a colonist, drops onto them and climbs slowly away. Shoot it and the colonist falls. If it reaches the top, it fuses with its catch into a Husk." },
+  { slot: "husk", name: "Husk", pts: "150", text: "A Snatcher fused with a colonist. Fast and twitchy: it chases you and fires as it closes in." },
+  { slot: "minelayer", name: "Minelayer", pts: "250", text: "Cruises slowly in a wave pattern, leaving a trail of mines behind it." },
+  { slot: "mine", name: "Mine", pts: "0", ghost: true, text: "Drawn at half size. Hangs still for 6 s, then fizzles. It fades in harmless for 0.4 s and can't be shot; fly round it or pulse it." },
+  { slot: "hound", name: "Hound", pts: "200", text: "Only comes when you stall. Fast, overshoots on turns and fires often. The HOUND lamp blinks for 3 s before the first one arrives." },
+];
+const KIT = [
+  { slot: "pulse", name: "Pulse charge", text: "Smart bomb. Destroys every hostile, shot and mine on screen. You start with 3." },
+];
+
+// Picks: first candidate by default (the build puts the chosen sprite first). Remembered per viewer when storage allows.
+const picks = {};
+for (const slot in SPRITES) picks[slot] = SPRITES[slot][0]?.id;
+const mirror = { player: true };
+try {
+  const saved = JSON.parse(localStorage.getItem("sentinel-picks") || "{}");
+  for (const slot in saved) if (SPRITES[slot]?.some((s) => s.id === saved[slot])) picks[slot] = saved[slot];
+  const savedMirror = JSON.parse(localStorage.getItem("sentinel-mirror") || "null");
+  if (savedMirror) { for (const k in mirror) delete mirror[k]; for (const slot of savedMirror) if (SPRITES[slot]) mirror[slot] = true; }
+} catch (e) {}
+function save() {
+  try {
+    localStorage.setItem("sentinel-picks", JSON.stringify(picks));
+    localStorage.setItem("sentinel-mirror", JSON.stringify(Object.keys(mirror)));
+  } catch (e) {}
+}
+
+const images = {};
+const whites = {};
+for (const slot in SPRITES) for (const s of SPRITES[slot]) {
+  const img = new Image();
+  img.onload = () => {
+    const c = document.createElement("canvas"); c.width = img.width; c.height = img.height;
+    const g = c.getContext("2d"); g.drawImage(img, 0, 0); g.globalCompositeOperation = "source-in"; g.fillStyle = "#ffffff"; g.fillRect(0, 0, c.width, c.height);
+    whites[s.id] = c;
+  };
+  img.src = s.src; images[s.id] = img;
+}
+const entry = (slot) => SPRITES[slot]?.find((s) => s.id === picks[slot]);
+
+function candidates(slot) {
+  const box = document.createElement("div");
+  box.className = "cands";
+  for (const s of SPRITES[slot] || []) {
+    const b = document.createElement("button");
+    b.type = "button"; b.className = "cand"; b.dataset.slot = slot; b.dataset.id = s.id;
+    b.title = `${s.subject} · #${s.id}`;
+    b.setAttribute("aria-label", `${s.subject}, catalog ${s.id}`);
+    const img = document.createElement("img"); img.src = s.src; img.alt = "";
+    b.append(img); box.append(b);
+  }
+  return box;
+}
+
+function card({ slot, name, pts, ghost, text }, withMirror = false) {
+  const c = document.createElement("article");
+  c.className = "card"; c.dataset.slot = slot;
+  const head = document.createElement("div"); head.className = "card-head";
+  const hero = document.createElement("img"); hero.className = "hero-sprite"; hero.alt = name; hero.dataset.hero = slot;
+  const title = document.createElement("div"); title.className = "card-title";
+  const h = document.createElement("h3"); h.textContent = name; title.append(h);
+  if (pts) { const chip = document.createElement("span"); chip.className = ghost ? "chip ghost" : "chip"; chip.textContent = `${pts} pts`; title.append(chip); }
+  const meta = document.createElement("span"); meta.className = "meta"; meta.dataset.meta = slot; title.append(meta);
+  if (withMirror) {
+    const m = document.createElement("button"); m.type = "button"; m.className = "mirror"; m.dataset.mirror = slot; m.textContent = "Mirror";
+    m.title = "Flip the art so it faces right at rest"; title.append(m);
+  }
+  head.append(hero, title); c.append(head);
+  if (text) { const p = document.createElement("p"); p.textContent = text; c.append(p); }
+  c.append(candidates(slot));
+  return c;
+}
+
+function shipCard() {
+  const c = card(SHIP, true);
+  const sizes = document.createElement("div"); sizes.className = "sizes";
+  for (const n of [1, 2, 4]) {
+    const f = document.createElement("figure");
+    const img = document.createElement("img"); img.width = 16 * n; img.height = 16 * n; img.alt = ""; img.dataset.hero = "player";
+    const cap = document.createElement("figcaption"); cap.textContent = `${n}× · ${16 * n}px`;
+    f.append(img, cap); sizes.append(f);
+  }
+  c.insertBefore(sizes, c.querySelector(".cands"));
+  return c;
+}
+
+document.getElementById("ship-grid").append(shipCard());
+for (const p of PEOPLE) document.getElementById("ship-grid").append(card(p));
+for (const e of ENEMIES) document.getElementById("enemy-grid").append(card(e));
+for (const k of KIT) document.getElementById("kit-grid").append(card(k));
+
+function refreshCards() {
+  document.querySelectorAll("[data-hero]").forEach((img) => {
+    const e = entry(img.dataset.hero); if (e) img.src = e.src;
+    img.classList.toggle("flip", Boolean(mirror[img.dataset.hero]));
+  });
+  document.querySelectorAll("[data-meta]").forEach((m) => { const s = entry(m.dataset.meta); if (s) m.textContent = `${s.subject} · #${s.id}`; });
+  document.querySelectorAll(".cand").forEach((b) => b.setAttribute("aria-pressed", String(Number(b.dataset.id) === picks[b.dataset.slot])));
+  document.querySelectorAll("[data-mirror]").forEach((b) => b.setAttribute("aria-pressed", String(Boolean(mirror[b.dataset.mirror]))));
+}
+refreshCards();
+
+document.addEventListener("click", (ev) => {
+  const b = ev.target.closest(".cand");
+  const m = ev.target.closest("[data-mirror]");
+  if (b) picks[b.dataset.slot] = Number(b.dataset.id);
+  else if (m) { const s = m.dataset.mirror; if (mirror[s]) delete mirror[s]; else mirror[s] = true; }
+  else return;
+  save(); refreshCards();
+});
+
+document.getElementById("copy-picks").addEventListener("click", () => {
+  const json = JSON.stringify({ ...picks, mirror: Object.keys(mirror) }, null, 2);
+  const status = document.getElementById("copy-status");
+  const area = document.getElementById("picks-text");
+  const fallback = () => { area.value = json; area.hidden = false; area.focus(); area.select(); status.textContent = "Copy the selected text below."; };
+  try {
+    navigator.clipboard.writeText(json).then(() => { area.hidden = true; status.textContent = "Copied. Paste it back to Claude."; }, fallback);
+  } catch (e) { fallback(); }
+});
+
+// ---- Screen mockup ----
+// Game coordinates are 416x228; the canvas is 2x so half-size icons (HUD, mines) stay pixel-exact, like the game's 4x canvas.
+const cv = document.getElementById("screen");
+const ctx = cv.getContext("2d");
+const S = 2, W = 416, H = 228, WORLD = 416 * 8, TOP = 32, GROUND = 212;
+const C = { void: "#060813", sky: "#080b1a", ink: "#e6eaff", dim: "#8d95c2", amber: "#ffc04d", beam: "#6ff7ff", danger: "#ff4d6d", line: "#232a52", panel: "#0e1228" };
+const KIND_COLORS = {
+  snatcher: ["#7dffb0", "#6ff7ff", "#ffffff"], husk: ["#ff5fd2", "#ff4d6d", "#ffffff"], minelayer: ["#ffc04d", "#ff7a3d", "#ffffff"],
+  hound: ["#ff4d6d", "#ffd166", "#ffffff"], player: ["#ffffff", "#6ff7ff", "#ffc04d"], colonist: ["#ff4d6d", "#ffffff"],
+};
+const SCAN_COLORS = { snatcher: "#7dffb0", husk: "#ff5fd2", minelayer: "#ffc04d", hound: "#ff4d6d" };
+const POINTS = { snatcher: 150, husk: 150, minelayer: 250, hound: 200 };
+const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+function mulberry32(a) { return () => { a |= 0; a = (a + 0x6d2b79f5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
+const mod = (a, n) => ((a % n) + n) % n;
+const wrap = (x) => mod(x, WORLD);
+const wdx = (from, to) => wrap(to - from + WORLD / 2) - WORLD / 2;   // shortest signed distance round the ring
+const rand = Math.random;
+
+// Baked layers (game pixels), drawn with smoothing off.
+function layer(w, h, paint) { const c = document.createElement("canvas"); c.width = w; c.height = h; paint(c.getContext("2d")); return c; }
+const STARS = layer(832, GROUND - TOP, (g) => {
+  const r = mulberry32(3);
+  for (let i = 0; i < 150; i++) { const b = r(); g.fillStyle = b > 0.92 ? "#ffffff" : b > 0.6 ? "#9fb0ff" : "#3d4780"; g.fillRect(Math.floor(r() * 832), Math.floor(r() * (GROUND - TOP - 40)), 1, 1); }
+});
+function skyline(dark) {
+  return layer(832, 84, (g) => {
+    const r = mulberry32(11); let x = 0;
+    while (x < 832) {
+      const w = 10 + Math.floor(r() * 26), h = 16 + Math.floor(r() * 58), ww = Math.min(w, 832 - x);
+      g.fillStyle = dark ? "#0a0b17" : "#0e1331"; g.fillRect(x, 84 - h, ww, h);
+      g.fillStyle = dark ? "#0e0f1f" : "#151b44"; g.fillRect(x, 84 - h, ww, 1);
+      for (let wy = 84 - h + 3; wy < 82; wy += 4) for (let wx = x + 2; wx < x + ww - 2; wx += 3) {
+        const p = r();
+        if (p < (dark ? 0.03 : 0.2)) { g.fillStyle = dark ? "#4a1420" : p < 0.16 ? "#27346f" : "#a98431"; g.fillRect(wx, wy, 1, 1); }
+      }
+      if (r() < 0.3) { g.fillStyle = dark ? "#0a0b17" : "#0e1331"; g.fillRect(x + Math.floor(ww / 2), 84 - h - 6, 1, 6); }
+      x += w + Math.floor(r() * 6);
+    }
+  });
+}
+const HULL_TOP = GROUND - 40;   // the hull layer starts 40 px above the walking line
+function dome(g, x, base, w, h, dark, r) {
+  const cx = x + w / 2;
+  for (let yy = 0; yy < h; yy++) {
+    const t = yy / h, half = Math.max(1, Math.round((w / 2) * Math.sqrt(1 - t * t)));
+    g.fillStyle = dark ? "#0f101d" : yy > h * 0.6 ? "#244c86" : "#183764";
+    g.fillRect(Math.round(cx - half), base - 1 - yy, half * 2, 1);
+    g.fillStyle = dark ? "#191a2c" : "#4b86c9";
+    g.fillRect(Math.round(cx - half), base - 1 - yy, 1, 1); g.fillRect(Math.round(cx + half) - 1, base - 1 - yy, 1, 1);
+  }
+  if (!dark) {
+    g.fillStyle = "#cfe8ff"; g.fillRect(Math.round(cx - w / 4), base - h + 3, 2, 1); g.fillRect(Math.round(cx - w / 4) - 1, base - h + 4, 1, 1);
+    for (let i = 0; i < 4; i++) { g.fillStyle = r() < 0.7 ? "#ffcf6e" : "#ff9a4d"; g.fillRect(Math.round(x + 3 + r() * (w - 6)), base - 3 - Math.floor(r() * 4), 1, 1); }
+  } else {
+    g.fillStyle = "#26283f"; let px = Math.round(cx - w / 5), py = base - h + 2;
+    for (let i = 0; i < h - 3; i++) { g.fillRect(px, py + i, 1, 1); px += r() < 0.5 ? 1 : -1; }
+  }
+}
+function hull(dark) {
+  return layer(WORLD, H - HULL_TOP, (g) => {
+    const r = mulberry32(5), base = GROUND - HULL_TOP;
+    let x = 20;
+    while (x < WORLD - 90) {
+      const k = r();
+      if (k < 0.45) { const w = 22 + Math.floor(r() * 22), h = 12 + Math.floor(r() * 14); dome(g, x, base, w, h, dark, r); x += w; }
+      else if (k < 0.75) {
+        const w = 6 + Math.floor(r() * 6), h = 18 + Math.floor(r() * 18);
+        g.fillStyle = dark ? "#11131f" : "#1b2250"; g.fillRect(x, base - h, w, h);
+        g.fillStyle = dark ? "#171a2d" : "#2b3672"; g.fillRect(x, base - h, 1, h);
+        for (let wy = base - h + 3; wy < base - 2; wy += 4) if (r() < 0.6 && (!dark || r() < 0.15)) { g.fillStyle = dark ? "#3a1018" : "#ffcf6e"; g.fillRect(x + 2, wy, Math.max(1, w - 4), 1); }
+        g.fillStyle = dark ? "#2a0f16" : "#ff5f73"; g.fillRect(x + Math.floor(w / 2), base - h - 2, 1, 2);
+        x += w;
+      } else {
+        const h = 14 + Math.floor(r() * 16);
+        g.fillStyle = dark ? "#151830" : "#2b3672"; g.fillRect(x, base - h, 1, h); g.fillRect(x - 2, base - h + 3, 5, 1);
+        x += 3;
+      }
+      x += 24 + Math.floor(r() * 70);
+    }
+    g.fillStyle = dark ? "#0c0e1b" : "#141a3c"; g.fillRect(0, base, WORLD, H - GROUND);
+    g.fillStyle = dark ? "#090a14" : "#0e122b"; for (let px = 0; px < WORLD; px += 32) g.fillRect(px, base + 1, 1, H - GROUND);
+    g.fillStyle = dark ? "#13162a" : "#232c60"; for (let px = 6; px < WORLD; px += 16) { g.fillRect(px, base + 5, 1, 1); g.fillRect(px + 8, base + 11, 1, 1); }
+    for (let px = 0; px < WORLD; px++) {
+      if (dark && mod(px * 7, 23) < 9) continue;
+      g.fillStyle = dark ? "#3a1520" : px % 8 < 6 ? "#6ff7ff" : "#2a8fa6"; g.fillRect(px, base, 1, 1);
+    }
+  });
+}
+const LAYERS = { lit: { sky: skyline(false), hull: hull(false) }, dark: { sky: skyline(true), hull: hull(true) } };
+
+// ---- World state ----
+let dark = false;
+const player = { x: 300, y: 120, vx: 0, facing: 1, lead: 120, invuln: 0, carry: null };
+let camX = wrap(player.x + player.lead), travel = 0;
+let score = 12450, ships = 3, pulses = 3, wave = 3, muted = false;
+const colonists = [];
+for (let i = 0; i < 10; i++) {
+  const home = wrap(140 + i * (WORLD / 10) + (i % 3) * 37);
+  colonists.push({ home, x: home, y: GROUND - 4, dir: i % 2 ? 1 : -1, state: "walk", vy: 0, fallFrom: 0, back: 0, by: null });
+}
+let foes = [], mines = [], shots = [], beams = [], sparks = [], rings = [], popups = [], respawns = [];
+let shake = 0, shakeMax = 0.001, flash = 0, houndClock = 18, houndLamp = 0, clock = 0, fireCool = 0;
+
+function spawn(kind, x, y) {
+  if (dark && kind === "snatcher") kind = "husk";
+  const e = { kind, x: wrap(x), y, spawnT: 0.5, cool: 1.5 + rand() * 2, t: rand() * 10, dir: rand() < 0.5 ? -1 : 1, base: y, vx: 0, vy: 0, target: null, state: "seek", carry: null, jit: 0, jx: 0, jy: 0, drop: 1 };
+  foes.push(e);
+  rings.push({ x: e.x, y, r: 20, dr: -40, life: 0.5, max: 0.5, color: SCAN_COLORS[kind] });
+  return e;
+}
+function offscreenX() { return wrap(camX + (rand() < 0.5 ? -1 : 1) * (W / 2 + 40 + rand() * 900)); }
+for (let i = 0; i < 5; i++) spawn("snatcher", 200 + i * 640, 70 + rand() * 50).spawnT = 0;
+spawn("snatcher", player.x + 170, 150).spawnT = 0;
+spawn("husk", player.x - 600, 90).spawnT = 0;
+spawn("husk", player.x + 1300, 120).spawnT = 0;
+spawn("minelayer", player.x + 260, 80).spawnT = 0;
+spawn("minelayer", player.x + 1800, 110).spawnT = 0;
+
+const onScreen = (x, m = 16) => Math.abs(wdx(camX, x)) < W / 2 + m;
+const sx = (x) => W / 2 + wdx(camX, x);
+function burst(x, y, colors, n) {
+  for (let i = 0; i < (reduceMotion ? Math.ceil(n / 3) : n); i++) {
+    const a = rand() * Math.PI * 2, v = 30 + rand() * 90;
+    sparks.push({ x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, life: 0.35 + rand() * 0.35, max: 0.7, color: colors[i % colors.length] });
+  }
+}
+function ring(x, y, r, dr, life, color) { rings.push({ x, y, r, dr, life, max: life, color }); }
+function shakeIt(mag, t) { if (reduceMotion) return; if (mag * t > shake * shakeMax) { shakeMax = mag; shake = t; } }
+function popup(x, y, text, color = C.amber) { popups.push({ x, y, text, life: 1, color }); }
+function addScore(n) { const before = Math.floor(score / 10000); score += n; if (Math.floor(score / 10000) > before) { ships++; pulses++; popup(player.x, player.y - 16, "+SHIP +PULSE", C.beam); } }
+
+function kill(e) {
+  if (e.dead) return;
+  e.dead = true;
+  addScore(POINTS[e.kind]); popup(e.x, e.y - 12, String(POINTS[e.kind]));
+  const big = e.kind === "minelayer";
+  burst(e.x, e.y, KIND_COLORS[e.kind], big ? 24 : 14);
+  ring(e.x, e.y, 2, 110, 0.35, KIND_COLORS[e.kind][0]); if (big) ring(e.x, e.y, 2, 60, 0.5, "#ffffff");
+  shakeIt(big ? 2 : 1, big ? 0.25 : 0.15);
+  if (e.carry) { const c = e.carry; c.state = "falling"; c.vy = 0; c.fallFrom = c.y; c.by = null; e.carry = null; }
+  if (e.kind !== "hound") {
+    const husks = foes.filter((f) => !f.dead && f.kind === "husk").length;
+    const kind = e.kind === "husk" ? (dark || husks < 2 ? "husk" : "snatcher") : e.kind === "snatcher" && dark ? "husk" : e.kind;
+    respawns.push({ kind, t: 2.5 });
+  }
+}
+
+function hitPlayer() {
+  if (player.invuln > 0) return;
+  burst(player.x, player.y, KIND_COLORS.player, 34);
+  ring(player.x, player.y, 2, 140, 0.45, "#ffffff"); ring(player.x, player.y, 2, 80, 0.6, C.beam);
+  flash = 0.12; shakeIt(3.5, 0.45);
+  player.invuln = 2.2; ships = ships > 1 ? ships - 1 : 3;
+  if (player.carry) { const c = player.carry; c.state = "falling"; c.vy = 0; c.fallFrom = c.y; player.carry = null; }
+}
+
+function usePulse() {
+  if (pulses <= 0) return;
+  pulses--; if (pulses === 0) setTimeout(() => { pulses = 3; }, 2500);
+  for (const e of foes) if (!e.dead && e.spawnT <= 0 && onScreen(e.x, 8)) kill(e);
+  mines = mines.filter((m) => { if (onScreen(m.x, 8)) { burst(m.x, m.y, ["#ffc04d", "#ffffff"], 5); return false; } return true; });
+  shots = shots.filter((s) => !onScreen(s.x, 8));
+  flash = reduceMotion ? 0 : 0.2;
+  ring(player.x, player.y, 4, 420, 0.5, "#ffffff"); ring(player.x, player.y, 4, 260, 0.65, C.beam);
+  shakeIt(3, 0.35);
+}
+
+function setDark(on) {
+  if (on === dark) return;
+  dark = on;
+  if (on) {
+    for (const c of colonists) { if (c.state !== "dead") burst(c.x, c.y, KIND_COLORS.colonist, 6); c.state = "gone"; c.by = null; }
+    player.carry = null;
+    for (const e of foes) if (!e.dead && e.kind === "snatcher") { e.kind = "husk"; e.carry = null; ring(e.x, e.y, 2, 60, 0.4, SCAN_COLORS.husk); }
+    flash = reduceMotion ? 0 : 0.35; shakeIt(4, 0.6);
+  } else {
+    for (const c of colonists) { c.state = "walk"; c.x = c.home; c.y = GROUND - 4; c.by = null; ring(c.x, c.y, 16, -32, 0.5, C.beam); }
+    let n = 0;
+    for (const e of foes) if (!e.dead && e.kind === "husk" && n++ >= 2) e.kind = "snatcher";
+  }
+  document.getElementById("world-note").textContent = on
+    ? "Last colonist lost: the hull is dark and every Snatcher has become a Husk until wave 5, 10, 15…"
+    : "What a wave looks like while colonists are still alive.";
+}
+
+// ---- Input ----
+const keys = new Set();
+let mouseFire = false, lastInput = -1e9, lastDevice = matchMedia("(pointer: coarse)").matches ? "touch" : "kbm", padLabel = "", padWas = {};
+const touch = { shown: matchMedia("(pointer: coarse)").matches, mx: 0, my: 0, fire: false };
+const TOUCH = { stick: { x: 48, y: 174, r: 24 }, fire: { x: 382, y: 176, r: 16 }, pulse: { x: 342, y: 196, r: 11 } };
+const touchPointers = new Map();
+const KEYMAP = { arrowleft: "left", a: "left", arrowright: "right", d: "right", arrowup: "up", w: "up", arrowdown: "down", s: "down", " ": "fire", j: "fire", shift: "pulse", k: "pulse", m: "mute" };
+
+function toGame(ev) { const r = cv.getBoundingClientRect(); return { x: ((ev.clientX - r.left) / r.width) * W, y: ((ev.clientY - r.top) / r.height) * H }; }
+const near = (p, b, extra = 6) => Math.hypot(p.x - b.x, p.y - b.y) < b.r + extra;
+function stickFrom(p) {
+  const dx = p.x - TOUCH.stick.x, dy = p.y - TOUCH.stick.y, d = Math.hypot(dx, dy), k = d > TOUCH.stick.r ? TOUCH.stick.r / d : 1;
+  touch.mx = (dx * k) / TOUCH.stick.r; touch.my = (dy * k) / TOUCH.stick.r;
+}
+function syncTouch() {
+  touch.fire = [...touchPointers.values()].includes("fire");
+  if (![...touchPointers.values()].includes("stick")) { touch.mx = 0; touch.my = 0; }
+}
+function soundHit(p) { return p.x > 398 && p.y < 15; }
+cv.addEventListener("contextmenu", (ev) => ev.preventDefault());
+cv.addEventListener("pointerdown", (ev) => {
+  cv.focus(); lastInput = performance.now();
+  const p = toGame(ev);
+  if (soundHit(p)) { muted = !muted; return; }
+  if (ev.pointerType === "touch" || touch.shown) {
+    let role = null;
+    if (near(p, TOUCH.fire)) role = "fire";
+    else if (near(p, TOUCH.pulse)) { usePulse(); role = "pulse"; }
+    else if (p.x < W / 2 && p.y > TOP) { role = "stick"; stickFrom(p); }
+    if (role || ev.pointerType === "touch") {
+      if (ev.pointerType === "touch") { lastDevice = "touch"; touch.shown = true; syncSeg(); }
+      touchPointers.set(ev.pointerId, role); syncTouch(); cv.setPointerCapture?.(ev.pointerId); return;
+    }
+  }
+  lastDevice = "kbm";
+  if (ev.button === 2) usePulse(); else mouseFire = true;
+});
+cv.addEventListener("pointermove", (ev) => { if (touchPointers.get(ev.pointerId) === "stick") { stickFrom(toGame(ev)); lastInput = performance.now(); } });
+const endPointer = (ev) => { touchPointers.delete(ev.pointerId); syncTouch(); if (ev.pointerType !== "touch") mouseFire = false; };
+window.addEventListener("pointerup", endPointer);
+window.addEventListener("pointercancel", endPointer);
+cv.addEventListener("keydown", (ev) => {
+  const k = KEYMAP[ev.key.toLowerCase()];
+  if (!k) return;
+  ev.preventDefault(); lastInput = performance.now(); lastDevice = "kbm";
+  if (k === "pulse" && !ev.repeat) usePulse();
+  else if (k === "mute" && !ev.repeat) muted = !muted;
+  else keys.add(k);
+});
+cv.addEventListener("keyup", (ev) => keys.delete(KEYMAP[ev.key.toLowerCase()]));
+cv.addEventListener("blur", () => { keys.clear(); mouseFire = false; });
+
+function setPadStatus(label, on) {
+  if (label === padLabel) return;
+  padLabel = label;
+  const el = document.getElementById("pad-status"); el.textContent = label; el.dataset.on = String(on);
+}
+function readPad(now) {
+  let pads;
+  try { pads = navigator.getGamepads ? navigator.getGamepads() : []; }
+  catch (e) { setPadStatus("This viewer blocks controller input. Open design/concept-sheet.html in a browser tab to use it.", false); return null; }
+  const p = [...pads].find((g) => g && g.connected);
+  if (!p) { setPadStatus("No controller yet. Press any button on it.", false); return null; }
+  setPadStatus(`Connected: ${p.id.replace(/\s*\(.*\)\s*/g, " ").trim()}`, true);
+  const dz = (v) => (Math.abs(v) < 0.2 ? 0 : v);
+  const b = (i) => Boolean(p.buttons[i] && p.buttons[i].pressed);
+  const out = { mx: dz(p.axes[0] || 0), my: dz(p.axes[1] || 0), fire: b(0) || b(7) || b(5), pulse: b(1) || b(6) || b(4), mute: b(3) };
+  if (b(12)) out.my = -1; if (b(13)) out.my = 1; if (b(14)) out.mx = -1; if (b(15)) out.mx = 1;
+  if (out.pulse && !padWas.pulse) usePulse();
+  if (out.mute && !padWas.mute) muted = !muted;
+  padWas = out;
+  if (out.mx || out.my || p.buttons.some((x) => x.pressed)) { lastInput = now; lastDevice = "pad"; }
+  return out;
+}
+
+// Demo pilot: catch anyone falling, carry them down, otherwise hunt the nearest threat (lifting Snatchers first).
+function autopilot() {
+  const falling = colonists.find((c) => c.state === "falling");
+  let target = null, mode = "hunt";
+  if (player.carry) mode = "land";
+  else if (falling) { target = falling; mode = "catch"; }
+  else {
+    let best = 1e9;
+    for (const e of foes) {
+      if (e.dead || e.spawnT > 0) continue;
+      const d = Math.abs(wdx(player.x, e.x)) - (e.kind === "snatcher" && e.carry ? 600 : 0);
+      if (d < best) { best = d; target = e; }
+    }
+  }
+  const out = { mx: 0, my: 0, fire: false };
+  if (mode === "land") { out.my = 1; return out; }
+  if (!target) return out;
+  const dx = wdx(player.x, target.x), dy = target.y - player.y, dist = Math.abs(dx);
+  out.my = Math.abs(dy) > 3 ? Math.sign(dy) * Math.min(1, Math.abs(dy) / 20) : 0;
+  if (mode === "catch") { out.mx = dist > 6 ? Math.sign(dx) : 0; return out; }
+  if (dist > 140) out.mx = Math.sign(dx);
+  else if (Math.sign(dx) !== player.facing) out.mx = Math.sign(dx) * 0.4;
+  out.fire = Math.sign(dx) === player.facing && Math.abs(dy) < 8 && dist < 280;
+  if (out.fire && dist < 60) out.mx = -Math.sign(dx) * 0.35;   // back off a little; facing holds because the push is weak
+  return out;
+}
+
+// ---- Update ----
+function update(dt, now) {
+  clock += dt;
+  const pad = readPad(now);
+  const demo = now - lastInput > 3500 && touchPointers.size === 0;
+  let mx = (keys.has("right") ? 1 : 0) - (keys.has("left") ? 1 : 0), my = (keys.has("down") ? 1 : 0) - (keys.has("up") ? 1 : 0);
+  let fire = keys.has("fire") || mouseFire || touch.fire;
+  if (touch.mx || touch.my) { mx = touch.mx; my = touch.my; }
+  if (pad) { if (pad.mx || pad.my) { mx = pad.mx; my = pad.my; } fire = fire || pad.fire; }
+  if (demo) { const a = autopilot(); mx = a.mx; my = a.my; fire = a.fire; }
+
+  // Craft: push the way you want to go. Strong pushes turn the craft; weak ones only nudge it.
+  if (Math.abs(mx) > 0.5) player.facing = Math.sign(mx);
+  player.vx += mx * 460 * dt;
+  if (!mx) player.vx *= Math.exp(-2.4 * dt);
+  player.vx = Math.max(-175, Math.min(175, player.vx));
+  player.x = wrap(player.x + player.vx * dt);
+  player.y = Math.max(TOP + 10, Math.min(GROUND - 10, player.y + my * 115 * dt));
+  player.lead += (player.facing * 120 - player.lead) * Math.min(1, dt * 2.2);
+  player.invuln = Math.max(0, player.invuln - dt);
+  const newCam = wrap(player.x + player.lead);
+  travel += wdx(camX, newCam); camX = newCam;
+
+  fireCool -= dt;
+  if (fire && fireCool <= 0) { beams.push({ x: wrap(player.x + player.facing * 9), y: player.y + 1, dir: player.facing, len: 0, life: 0.3, stop: 1e9 }); fireCool = 0.17; }
+  for (const b of beams) {
+    b.life -= dt; b.len = Math.min(b.stop, b.len + 1150 * dt, 300);
+    if (b.stop < 1e9) continue;
+    for (const e of foes) {
+      if (e.dead || e.spawnT > 0) continue;
+      const d = wdx(b.x, e.x) * b.dir;
+      if (d > -4 && d < b.len && Math.abs(e.y - b.y) < 7) { kill(e); b.stop = Math.max(0, d); b.len = b.stop; break; }
+    }
+  }
+  beams = beams.filter((b) => b.life > 0);
+
+  // Hostiles
+  for (const e of foes) {
+    if (e.dead) continue;
+    e.t += dt;
+    if (e.spawnT > 0) { e.spawnT -= dt; continue; }
+    const pdx = wdx(e.x, player.x), pdy = player.y - e.y;
+    if (e.kind === "snatcher") {
+      if (e.state === "seek") {
+        if (!e.target || e.target.state !== "walk" || e.target.by) {
+          let best = 1e9; e.target = null;
+          for (const c of colonists) if (c.state === "walk" && !c.by && !foes.some((f) => f !== e && !f.dead && f.target === c)) { const d = Math.abs(wdx(e.x, c.x)); if (d < best) { best = d; e.target = c; } }
+        }
+        const tx = e.target ? wdx(e.x, e.target.x) : e.dir * 50;
+        e.x = wrap(e.x + Math.sign(tx) * Math.min(Math.abs(tx), 30 * dt));
+        e.y += (e.base + Math.sin(e.t * 1.3) * 10 - e.y) * Math.min(1, dt * 2);
+        if (e.target && Math.abs(tx) < 3) e.state = "descend";
+      } else if (e.state === "descend") {
+        const c = e.target;
+        if (!c || c.state !== "walk") { e.state = "seek"; e.target = null; }
+        else {
+          e.x = c.x; e.y += 34 * dt;
+          if (e.y >= c.y - 10) { c.state = "taken"; c.by = e; e.carry = c; e.state = "lift"; ring(c.x, c.y, 2, 40, 0.3, C.amber); }
+        }
+      } else if (e.state === "lift") {
+        e.y -= 13 * dt;
+        if (e.carry) { e.carry.x = e.x; e.carry.y = e.y + 10; }
+        if (e.y < TOP + 12) {
+          const c = e.carry;
+          if (c) { c.state = "dead"; c.back = 9; c.by = null; }
+          e.carry = null; e.kind = "husk"; e.state = "seek"; e.target = null;
+          burst(e.x, e.y, KIND_COLORS.husk, 12); ring(e.x, e.y, 2, 70, 0.4, SCAN_COLORS.husk); shakeIt(1, 0.15);
+          respawns.push({ kind: dark ? "husk" : "snatcher", t: 3 });
+        }
+      }
+    } else if (e.kind === "husk") {
+      e.jit -= dt;
+      if (e.jit <= 0) { e.jit = 0.35; e.jx = (rand() - 0.5) * 60; e.jy = (rand() - 0.5) * 50; }
+      const tx = pdx + e.jx, ty = pdy + e.jy, d = Math.hypot(tx, ty) || 1;
+      e.x = wrap(e.x + (tx / d) * 62 * dt); e.y = Math.max(TOP + 8, Math.min(GROUND - 12, e.y + (ty / d) * 62 * dt));
+    } else if (e.kind === "minelayer") {
+      e.x = wrap(e.x + e.dir * 22 * dt); e.y = e.base + Math.sin(e.t * 0.9) * 28;
+      e.drop -= dt;
+      if (e.drop <= 0) { e.drop = 1.5; mines.push({ x: e.x, y: e.y + 6, life: 6, arm: 0.4 }); }
+    } else if (e.kind === "hound") {
+      const d = Math.hypot(pdx, pdy) || 1;
+      e.vx += (pdx / d) * 260 * dt; e.vy += (pdy / d) * 200 * dt;
+      const sp = Math.hypot(e.vx, e.vy); if (sp > 125) { e.vx *= 125 / sp; e.vy *= 125 / sp; }
+      e.x = wrap(e.x + e.vx * dt); e.y = Math.max(TOP + 8, Math.min(GROUND - 12, e.y + e.vy * dt));
+    }
+    // Fire: flash white for 0.35 s first, and only when on screen.
+    if (e.kind !== "minelayer" && !(e.kind === "snatcher" && e.state !== "seek")) {
+      e.cool -= dt;
+      if (e.cool <= 0) {
+        if (onScreen(e.x, -8)) { const d = Math.hypot(pdx, pdy) || 1, v = 72; shots.push({ x: e.x, y: e.y, vx: (pdx / d) * v, vy: (pdy / d) * v, life: 3 }); }
+        e.cool = (e.kind === "hound" ? 1.2 : e.kind === "husk" ? 1.7 : 2.6) + rand() * 1.2;
+      }
+    }
+    if (player.invuln <= 0 && Math.abs(wdx(player.x, e.x)) < 10 && Math.abs(player.y - e.y) < 9) { hitPlayer(); kill(e); }
+  }
+  foes = foes.filter((e) => !e.dead);
+  for (const r of respawns) { r.t -= dt; if (r.t <= 0) spawn(r.kind, offscreenX(), 60 + rand() * 80); }
+  respawns = respawns.filter((r) => r.t > 0);
+
+  // Hound timer: lamp blinks 3 s, then one warps in ahead of you. The mockup repeats it so it can be seen.
+  houndClock -= dt;
+  houndLamp = houndClock < 3 ? houndClock : 0;
+  if (houndClock <= 0) { houndClock = 22; if (foes.filter((f) => f.kind === "hound").length < 2) spawn("hound", player.x + player.facing * 150, Math.max(TOP + 20, player.y - 30)); }
+
+  for (const m of mines) { m.life -= dt; m.arm -= dt; if (m.arm <= 0 && player.invuln <= 0 && Math.abs(wdx(player.x, m.x)) < 7 && Math.abs(player.y - m.y) < 6) { m.life = 0; hitPlayer(); } }
+  mines = mines.filter((m) => m.life > 0);
+  for (const s of shots) {
+    s.x = wrap(s.x + s.vx * dt); s.y += s.vy * dt; s.life -= dt;
+    if (player.invuln <= 0 && Math.abs(wdx(player.x, s.x)) < 5 && Math.abs(player.y - s.y) < 4) { s.life = 0; hitPlayer(); }
+  }
+  shots = shots.filter((s) => s.life > 0 && s.y > TOP && s.y < GROUND);
+
+  // Colonists
+  for (const c of colonists) {
+    if (c.state === "walk") {
+      c.x = wrap(c.x + c.dir * 5 * dt);
+      if (Math.abs(wdx(c.home, c.x)) > 24) c.dir = -Math.sign(wdx(c.home, c.x));
+    } else if (c.state === "falling") {
+      c.vy = Math.min(c.vy + 38 * dt, 46); c.y += c.vy * dt;
+      if (!player.carry && Math.abs(wdx(player.x, c.x)) < 10 && Math.abs(player.y + 8 - c.y) < 9) {
+        c.state = "carried"; player.carry = c; addScore(500); popup(c.x, c.y - 12, "CAUGHT 500", C.beam); ring(c.x, c.y, 2, 50, 0.3, C.beam);
+      } else if (c.y >= GROUND - 4) {
+        c.y = GROUND - 4;
+        if (GROUND - c.fallFrom > 80) { c.state = "dead"; c.back = 9; burst(c.x, c.y, KIND_COLORS.colonist, 10); shakeIt(1, 0.15); }
+        else { c.state = "walk"; c.home = c.x; addScore(250); popup(c.x, c.y - 14, "250", C.beam); }
+      }
+    } else if (c.state === "carried") {
+      c.x = player.x; c.y = player.y + 9;
+      if (c.y >= GROUND - 10) { c.y = GROUND - 4; c.state = "walk"; c.home = c.x; player.carry = null; addScore(500); popup(c.x, c.y - 14, "SAFE 500", C.beam); ring(c.x, c.y, 2, 40, 0.3, C.beam); }
+    } else if (c.state === "dead" && !dark) {
+      c.back -= dt;
+      if (c.back <= 0) { c.state = "walk"; c.x = c.home; c.y = GROUND - 4; ring(c.x, c.y, 16, -32, 0.5, C.beam); }
+    }
+  }
+
+  for (const p of sparks) { p.x = wrap(p.x + p.vx * dt); p.y += p.vy * dt; p.vx *= Math.exp(-3 * dt); p.vy *= Math.exp(-3 * dt); p.life -= dt; }
+  sparks = sparks.filter((p) => p.life > 0);
+  for (const r of rings) { r.r = Math.max(0, r.r + r.dr * dt); r.life -= dt; }
+  rings = rings.filter((r) => r.life > 0);
+  for (const p of popups) { p.y -= 14 * dt; p.life -= dt; }
+  popups = popups.filter((p) => p.life > 0);
+  shake = Math.max(0, shake - dt); flash = Math.max(0, flash - dt);
+}
+
+// ---- Draw ----
+function drawSprite(slot, x, y, { faceLeft = false, scale = 1, alpha = 1, white = false } = {}) {
+  const id = picks[slot], img = white ? whites[id] : images[id];
+  if (!img || (img instanceof HTMLImageElement && !img.complete)) return;
+  const flip = Boolean(mirror[slot]) !== faceLeft, s = 16 * scale;
+  ctx.save(); ctx.globalAlpha = alpha; ctx.translate(Math.round(x), Math.round(y));
+  if (flip) ctx.scale(-1, 1);
+  ctx.drawImage(img, -s / 2, -s / 2, s, s);
+  ctx.restore();
+}
+function text(str, x, y, color = C.ink, align = "left") {
+  ctx.font = "8px Silkscreen, monospace"; ctx.textAlign = align; ctx.textBaseline = "top";
+  ctx.fillStyle = "#000000"; ctx.fillText(str, x + 1, y + 1);
+  ctx.fillStyle = color; ctx.fillText(str, x, y);
+}
+function tiled(img, off, y) { const o = mod(off, img.width); ctx.drawImage(img, -o, y); ctx.drawImage(img, img.width - o, y); }
+const blink = (hz) => Math.floor(clock * hz) % 2 === 0;
+
+function drawWorld(ox, oy) {
+  ctx.save(); ctx.translate(ox, oy);
+  // Sky bands, then stars, the planet the ring circles, the far skyline, then the hull itself.
+  const bands = dark ? ["#0c0710", "#120a16", "#190d1b", "#22101f"] : ["#05060f", "#070918", "#0a0d22", "#0e122d"];
+  bands.forEach((c, i) => { ctx.fillStyle = c; ctx.fillRect(-8, TOP + i * 45, W + 16, 46); });
+  ctx.globalAlpha = dark ? 0.5 : 1; tiled(STARS, travel * 0.12, TOP); ctx.globalAlpha = 1;
+  if (!reduceMotion) for (let i = 0; i < 10; i++) {
+    const px = mod(i * 97 - travel * 0.12, 416), py = TOP + 8 + ((i * 53) % 120);
+    if (Math.sin(clock * (1.5 + i * 0.3) + i) > 0.6) { ctx.fillStyle = "#ffffff"; ctx.fillRect(Math.round(px), py, 1, 1); }
+  }
+  const pxp = mod(330 - travel * 0.03, 1100) - 200, pyp = 128, pr = 46;
+  if (pxp > -80 && pxp < W + 80) {
+    ctx.save(); ctx.beginPath(); ctx.arc(pxp, pyp, pr, 0, Math.PI * 2); ctx.clip();
+    const pc = dark ? ["#2a1020", "#3a1424", "#4a1a2a", "#2a1020"] : ["#1d2f6b", "#26408a", "#3157a8", "#22397c"];
+    for (let i = 0; i < 12; i++) { ctx.fillStyle = pc[i % 4]; ctx.fillRect(pxp - pr, pyp - pr + i * 8, pr * 2, 8); }
+    ctx.fillStyle = "rgba(4,5,12,0.55)"; ctx.beginPath(); ctx.arc(pxp + 18, pyp + 10, pr, 0, Math.PI * 2); ctx.fill();
+    ctx.restore();
+    ctx.strokeStyle = dark ? "rgba(255,77,109,0.35)" : "rgba(111,247,255,0.45)"; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.ellipse(pxp, pyp + 4, pr * 2.6, 9, -0.08, 0, Math.PI * 2); ctx.stroke();
+  }
+  const L = dark ? LAYERS.dark : LAYERS.lit;
+  tiled(L.sky, travel * 0.45, GROUND - 84);
+  const left = wrap(camX - W / 2 - 8), first = Math.min(W + 16, WORLD - left);
+  ctx.drawImage(L.hull, left, 0, first, L.hull.height, -8, HULL_TOP, first, L.hull.height);
+  if (first < W + 16) ctx.drawImage(L.hull, 0, 0, W + 16 - first, L.hull.height, first - 8, HULL_TOP, W + 16 - first, L.hull.height);
+
+  for (const m of mines) if (onScreen(m.x)) drawSprite("mine", sx(m.x), m.y, { scale: 0.5, alpha: m.arm > 0 ? 0.35 : m.life < 1 && blink(8) ? 0.4 : 1 });
+  for (const c of colonists) {
+    if (c.state === "dead" || c.state === "gone" || !onScreen(c.x)) continue;
+    const taken = c.state === "taken";
+    drawSprite("colonist", sx(c.x), c.y, { faceLeft: c.dir < 0, white: taken && blink(6), scale: 0.5 });
+  }
+  for (const e of foes) {
+    if (!onScreen(e.x)) continue;
+    const x = sx(e.x), y = e.y + (e.kind === "hound" ? Math.sin(e.t * 9) : 0);
+    if (e.carry) { ctx.fillStyle = "rgba(125,255,176,0.45)"; for (let yy = y + 5; yy < e.carry.y - 6; yy += 3) ctx.fillRect(Math.round(x) - 1, Math.round(yy), 2, 1); }
+    if (e.spawnT > 0) { drawSprite(e.kind, x, y, { alpha: 0.25 + 0.5 * (1 - e.spawnT / 0.5) }); continue; }
+    const warn = e.kind !== "minelayer" && e.cool > 0 && e.cool < 0.35 && blink(14);
+    drawSprite(e.kind, x, y, { white: warn, faceLeft: e.kind === "hound" ? e.vx < 0 : false });
+  }
+  for (const s of shots) if (onScreen(s.x)) { ctx.fillStyle = blink(12) ? "#ffffff" : C.danger; ctx.fillRect(Math.round(sx(s.x)) - 1, Math.round(s.y) - 1, 2, 2); }
+  for (const b of beams) {
+    const x0 = sx(b.x), a = Math.max(0, b.life / 0.3);
+    const seg = (from, to, color, h) => { ctx.fillStyle = color; const xa = x0 + b.dir * from, xb = x0 + b.dir * to; ctx.fillRect(Math.round(Math.min(xa, xb)), Math.round(b.y) - (h > 1 ? 1 : 0), Math.max(1, Math.round(Math.abs(xb - xa))), h); };
+    ctx.globalAlpha = a;
+    for (let d = 0; d < b.len - 16; d += 6) seg(d, Math.min(d + 4, b.len - 16), d < b.len * 0.4 ? "#ff5fd2" : C.beam, 1);
+    seg(Math.max(0, b.len - 16), b.len, "#ffffff", 2);
+    ctx.globalAlpha = 1;
+  }
+  if (!(player.invuln > 0 && blink(10))) {
+    const px = sx(player.x);
+    if (Math.abs(player.vx) > 30 && !reduceMotion) { ctx.fillStyle = blink(20) ? C.amber : "#ff7a3d"; ctx.fillRect(Math.round(px - player.facing * 10) - (player.facing > 0 ? 2 : 0), Math.round(player.y), 3, 1); }
+    drawSprite("player", px, player.y, { faceLeft: player.facing < 0 });
+  }
+  for (const p of sparks) { if (!onScreen(p.x)) continue; ctx.globalAlpha = Math.min(1, p.life / 0.3); ctx.fillStyle = p.color; ctx.fillRect(Math.round(sx(p.x)), Math.round(p.y), 2, 1); }
+  ctx.globalAlpha = 1;
+  for (const r of rings) { if (!onScreen(r.x, r.r)) continue; ctx.globalAlpha = r.life / r.max; ctx.strokeStyle = r.color; ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(sx(r.x), r.y, r.r, 0, Math.PI * 2); ctx.stroke(); }
+  ctx.globalAlpha = 1;
+  for (const p of popups) if (onScreen(p.x)) { ctx.globalAlpha = Math.min(1, p.life * 2); text(p.text, sx(p.x), p.y, p.color, "center"); }
+  ctx.globalAlpha = 1;
+  ctx.restore();
+
+  // Edge arrows for colonists taken off screen.
+  for (const c of colonists) {
+    if (c.state !== "taken" || onScreen(c.x, -4) || !blink(4)) continue;
+    const side = wdx(camX, c.x) < 0 ? -1 : 1, x = side < 0 ? 4 : W - 5, y = Math.max(TOP + 6, Math.min(GROUND - 6, c.y));
+    ctx.fillStyle = C.amber;
+    for (let i = 0; i < 4; i++) ctx.fillRect(x + side * i, y - (3 - i), 1, (3 - i) * 2 + 1);
+  }
+}
+
+function lamp(label, x, y, w, on, color) {
+  ctx.fillStyle = on ? color : C.panel; ctx.fillRect(x, y, w, 10);
+  ctx.strokeStyle = on ? color : C.line; ctx.lineWidth = 1; ctx.strokeRect(x + 0.5, y + 0.5, w - 1, 9);
+  text(label, x + w / 2, y + 1, on ? C.void : C.dim, "center");
+}
+
+function drawHud() {
+  ctx.fillStyle = C.void; ctx.fillRect(0, 0, W, TOP);
+  ctx.fillStyle = C.line; ctx.fillRect(0, TOP - 1, W, 1);
+  text("SCORE", 4, 4, C.dim);
+  const s = String(score).padStart(6, "0"); text(`${s.slice(0, 3)},${s.slice(3)}`, 38, 4, C.amber);
+  for (let i = 0; i < Math.min(ships, 4); i++) drawSprite("player", 8 + i * 10, 21, { scale: 0.5 });
+  for (let i = 0; i < Math.min(pulses, 4); i++) drawSprite("pulse", 56 + i * 10, 21, { scale: 0.5 });
+
+  // Scanner: the whole ring, centred on you.
+  const X0 = 112, X1 = 304, SW = X1 - X0, mid = X0 + SW / 2, k = SW / WORLD;
+  ctx.fillStyle = "#04050c"; ctx.fillRect(X0, 2, SW, 27);
+  ctx.strokeStyle = C.line; ctx.strokeRect(X0 + 0.5, 2.5, SW - 1, 26);
+  const syMap = (y) => 4 + ((y - TOP) / (GROUND - TOP)) * 21;
+  for (let x = X0 + 1; x < X1 - 1; x += 2) { ctx.fillStyle = dark ? "#3a1520" : "#2a8fa6"; ctx.fillRect(x, 26, 1, 1); }
+  const dot = (wx, wy, color, w = 2, h = 2) => { const x = mid + wdx(player.x, wx) * k; if (x < X0 + 1 || x > X1 - 2) return; ctx.fillStyle = color; ctx.fillRect(Math.round(x), Math.round(syMap(wy)), w, h); };
+  for (const c of colonists) if (c.state !== "dead" && c.state !== "gone") dot(c.x, c.y, c.state === "taken" ? (blink(6) ? C.amber : "#ffffff") : C.beam, 1, 2);
+  for (const e of foes) if (e.spawnT <= 0) dot(e.x, e.y, SCAN_COLORS[e.kind]);
+  if (blink(3)) dot(player.x, player.y, "#ffffff", 3, 1);
+  const vl = mid + wdx(player.x, camX - W / 2) * k, vr = mid + wdx(player.x, camX + W / 2) * k;
+  ctx.fillStyle = C.ink;
+  for (const [x, d] of [[vl, 1], [vr, -1]]) {
+    const rx = Math.round(x), hx = d > 0 ? rx : rx - 2;
+    ctx.fillRect(rx, 3, 1, 3); ctx.fillRect(hx, 3, 3, 1); ctx.fillRect(rx, 25, 1, 3); ctx.fillRect(hx, 27, 3, 1);
+  }
+
+  text("WAVE", 312, 4, C.dim); text(String(wave).padStart(2, "0"), 342, 4, C.amber);
+  lamp("HOUND", 358, 3, 38, foes.some((f) => f.kind === "hound") || (houndLamp > 0 && blink(4)), C.danger);
+  colonists.forEach((c, i) => {
+    const alive = c.state !== "dead" && c.state !== "gone";
+    ctx.fillStyle = !alive ? C.line : c.state === "taken" && blink(6) ? C.amber : C.beam;
+    ctx.fillRect(312 + i * 4, 18, 3, 6);
+  });
+  lamp("TAKEN", 358, 16, 38, colonists.some((c) => c.state === "taken") && blink(3), C.amber);
+  // Sound toggle (tappable): a 9x7 speaker with waves or a cross.
+  ctx.fillStyle = muted ? C.dim : C.ink;
+  ctx.fillRect(401, 5, 2, 3); ctx.fillRect(403, 4, 1, 5); ctx.fillRect(404, 3, 1, 7);
+  if (muted) { for (let i = 0; i < 4; i++) { ctx.fillRect(406 + i, 4 + i, 1, 1); ctx.fillRect(409 - i, 4 + i, 1, 1); } }
+  else { ctx.fillRect(406, 5, 1, 3); ctx.fillRect(408, 4, 1, 5); ctx.fillRect(410, 3, 1, 7); }
+
+  // Hint strip over the hull, matching the last device used.
+  const demo = performance.now() - lastInput > 3500;
+  const hint = demo ? "DEMO  ·  CLICK THE SCREEN TO FLY"
+    : lastDevice === "pad" ? "STICK FLY  ·  A FIRE  ·  B PULSE  ·  Y SOUND"
+    : lastDevice === "touch" ? "STICK FLY  ·  HOLD FIRE  ·  TAP PULSE"
+    : "ARROWS FLY  ·  SPACE FIRE  ·  SHIFT PULSE  ·  M SOUND";
+  text(hint, W / 2, GROUND + 5, C.dim, "center");
+}
+
+function drawTouch() {
+  if (!touch.shown) return;
+  const st = TOUCH.stick;
+  ctx.globalAlpha = 0.9;
+  ctx.fillStyle = "rgba(230,234,255,0.10)"; ctx.beginPath(); ctx.arc(st.x, st.y, st.r, 0, Math.PI * 2); ctx.fill();
+  ctx.strokeStyle = "rgba(230,234,255,0.35)"; ctx.lineWidth = 1; ctx.stroke();
+  ctx.fillStyle = touch.mx || touch.my ? "rgba(255,192,77,0.6)" : "rgba(230,234,255,0.3)";
+  ctx.beginPath(); ctx.arc(st.x + touch.mx * st.r * 0.7, st.y + touch.my * st.r * 0.7, 9, 0, Math.PI * 2); ctx.fill();
+  for (const [key, label] of [["fire", "FIRE"], ["pulse", "PULSE"]]) {
+    const b = TOUCH[key], on = key === "fire" ? touch.fire : false;
+    ctx.fillStyle = on ? "rgba(111,247,255,0.45)" : "rgba(230,234,255,0.12)";
+    ctx.beginPath(); ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = "rgba(230,234,255,0.4)"; ctx.stroke();
+    text(label, b.x, b.y - 4, C.ink, "center");
+  }
+  ctx.globalAlpha = 1;
+}
+
+let last = performance.now();
+function frame(now) {
+  const dt = Math.min(0.05, (now - last) / 1000); last = now;
+  update(dt, now);
+  ctx.setTransform(S, 0, 0, S, 0, 0);
+  ctx.imageSmoothingEnabled = false;
+  ctx.fillStyle = C.void; ctx.fillRect(0, 0, W, H);
+  const mag = shake > 0 ? shakeMax * Math.min(1, shake / 0.2) : 0;
+  drawWorld(Math.round((rand() - 0.5) * 2 * mag), Math.round((rand() - 0.5) * 2 * mag));
+  if (flash > 0) { ctx.fillStyle = `rgba(255,255,255,${Math.min(0.6, flash * 3)})`; ctx.fillRect(0, TOP, W, H - TOP); }
+  drawHud();
+  drawTouch();
+  requestAnimationFrame(frame);
+}
+
+function syncSeg() {
+  document.getElementById("touch-on").setAttribute("aria-pressed", String(touch.shown));
+  document.getElementById("touch-off").setAttribute("aria-pressed", String(!touch.shown));
+}
+document.querySelectorAll("[data-touch]").forEach((b) => b.addEventListener("click", () => { touch.shown = b.dataset.touch === "on"; syncSeg(); }));
+document.querySelectorAll("[data-world]").forEach((b, _, all) => b.addEventListener("click", () => {
+  setDark(b.dataset.world === "dark");
+  all.forEach((x) => x.setAttribute("aria-pressed", String(x === b)));
+}));
+syncSeg();
+requestAnimationFrame(frame);
+</script>

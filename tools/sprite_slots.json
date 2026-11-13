@@ -1,0 +1,10 @@
+{
+  "player": {"subjects": ["fighter jet", "starfighter", "space shuttle"], "picks": [440110, 440113, 440114, 440119, 440152, 1196846, 1156047, 1156057], "chosen": 440110, "mirror": true},
+  "colonist": {"subjects": ["astronaut", "armored spacesuit"], "picks": [40575, 40578, 40584, 40587, 40598, 40613, 34053, 34057], "chosen": 40575},
+  "snatcher": {"subjects": ["drone", "space probe", "flying saucer"], "picks": [378907, 378909, 378912, 378915, 378933, 378935, 474238, 474252], "chosen": 378915},
+  "husk": {"subjects": ["cyborg", "insectoid alien", "alien invader"], "picks": [326842, 326860, 326887, 645886, 645889, 645921, 10082, 10114], "chosen": 645921},
+  "hound": {"subjects": ["flying disc", "flying saucer", "spinning top"], "picks": [474047, 474051, 474239, 474241, 474247, 474279, 1170957, 1170959], "chosen": 474247},
+  "minelayer": {"subjects": ["satellite", "space station"], "picks": [1156489, 1156496, 1156500, 1156503, 1156510, 1156519, 1156530, 1156535], "chosen": 1156519},
+  "mine": {"subjects": ["proximity mine", "naval mine", "spiked bomb"], "picks": [820799, 820803, 820814, 820821, 820833, 1166277, 1166281, 1166311], "chosen": 1166281},
+  "pulse": {"subjects": ["emp grenade", "lightning bomb", "bomb icon"], "picks": [718465, 718466, 718467, 119117, 119120, 119122, 119129, 119144], "chosen": 718465}
+}

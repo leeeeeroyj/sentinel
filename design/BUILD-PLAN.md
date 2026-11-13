@@ -1,0 +1,93 @@
+# Sentinel: build plan
+
+A side-scrolling patrol shooter on a looping orbital ring, re-imagined from Williams Electronics' *Defender* (1981). Concept, rules and sprite picks: `design/concept-sheet.html`.
+
+## Scope
+
+**v1**
+- One ring, 8 screens around (3,328 px), that loops with no edges. Seeded hull: domes, towers and masts, repeating every lap.
+- Patrol craft with modern flight: push left/right to fly and face that way, up/down to climb and dive, with inertia. The view leads ahead of the craft and swings round when it turns. Hold to fire a long horizontal laser; pulse (smart bomb) clears the screen.
+- 10 colonists. Snatchers drop onto them and lift them away; reaching the top fuses Snatcher and colonist into a Husk. Shoot a lifting Snatcher and the colonist falls: catch 500, land 500, short fall survives 250.
+- Roster: Snatcher (150), Husk (150), Minelayer (250) and its mines (can't be shot), Hound (200, anti-stall).
+- Waves: Snatchers arrive in groups of five, 15 in wave 1, +3 per wave. Wave ends when every Snatcher, Husk and Minelayer is gone. Bonus 100 × wave per surviving colonist (capped at 500 each).
+- The ring goes dark when the last colonist is lost: Snatchers become Husks, new ones arrive as Husks. Colonists and lights return at the start of waves 5, 10, 15…
+- Hounds: after 60 s in a wave (−5 s per wave, minimum 30 s) the HOUND lamp blinks for 3 s, then a Hound warps in every 10 s until the wave ends.
+- 3 ships, 3 pulses; +1 of each every 10,000. 2 s blinking invulnerability after a respawn.
+- HUD: score, ships, pulses, scanner (centred on the craft, with view brackets), wave, colonist pips, HOUND and TAKEN lamps, tappable sound toggle, device-matched hint strip, off-screen abduction arrows.
+- Keyboard + mouse, controller, touch. Procedural sound. Deployed to GitHub Pages.
+
+**Later**
+- High-score table, music, a boss wave, colour-blind palette for the scanner, more hostiles (anything like the original's pods/swarmers stays out unless asked).
+
+**Explicitly dropped from the original:** hyperspace, separate thrust and reverse buttons, pods and swarmers.
+
+## Architecture
+
+Vite 8 + Phaser 4 + TypeScript, at the versions Mars Patrol uses (`phaser ^4.2.1`, `vite ^8.3.8`, `typescript ^7.0.2`; Node `^20.19.0 || >=22.12.0` per Vite's `engines`). `assets/` is Vite's public dir, so `tools/sprites.py build` output is live.
+
+**World model: wrap-around** (playbook, "World and camera"). No arcade physics and no camera scrolling:
+- Every object keeps a world `x` in `[0, W)`. `wdx(a, b) = Wrap(b − a + W/2, 0, W) − W/2` gives the shortest signed distance round the ring; drawing (`screenX = 208 + wdx(camX, x)`), chasing, the scanner and every collision use it.
+- `camX = player.x + lead`, where `lead` eases toward `facing × 120` (the craft sits about 88 px from the trailing edge).
+- Parallax layers scroll by a separate, unwrapped `travel` counter, so the seam where `x` wraps never jumps a layer.
+- Collisions are distance checks with radii a little smaller than the sprites.
+
+| Module | Source | What |
+|---|---|---|
+| `config.ts` | new | Every tunable: world size, craft speeds and lead, laser, points, wave table, hound timer, fall height, colours, `PLAYER_FACES_LEFT` mirror flag. |
+| `world.ts` | new | `wrap`, `wdx`, seeded `rng` (mulberry32, from MP `course.ts`), hull layout generator. |
+| `controls.ts` | adapted from MP + SR | Analogue fly vector (SR's stick handling), fire (hold), pulse and mute (edges); keyboard + mouse, controller, touch; last-used device for hints. |
+| `touch.ts` | merged | One analogue stick on the left (SR) plus FIRE and PULSE buttons on the right (MP), in the side bars on wide phones, bottom corners as fallback. |
+| `sfx.ts` | copied | Same synth. New voices: laser, snatch alarm, fall whistle, catch, land, kill, mine drop, pulse, hound warning, ring going dark. Own mute key. |
+| `effects.ts`, `fx.ts` | copied from SR | Sparks, shockwave rings, flash, shake in game pixels. Bloom off by default. |
+| `view.ts` | copied | Camera fit at 4× (game) and 2× (HUD). |
+| `backdrop.ts` | adapted from MP | Stars, planet and skyline baked to tiling textures; the hull baked to one 3,328 × 56 texture (lit and dark variants), drawn in two slices at the seam. |
+| `entities/*.ts` | new | Colonist (walk, taken, falling, carried, dead), Snatcher (seek, descend, lift, fuse), Husk, Minelayer, Mine, Hound, enemy shot. Each warns before it can hurt: 0.5 s warp-in, 0.35 s white flash before firing, mines fade in harmless for 0.4 s. |
+| `waves.ts` | new | Wave table and spawner: groups of five, minelayer count, ramped speeds and fire rates, hound timer, end-of-wave bonus, dark/restore rule. |
+| `scenes/TitleScene.ts` | new | Title, legend, controls, start. |
+| `scenes/RingScene.ts` | new | The game: update entities, collisions, scoring, respawn, game over. Writes HUD state to the registry. |
+| `scenes/HudScene.ts` | adapted | Top bar, scanner, lamps, pips, edge arrows, hint strip, sound toggle, game-over RETRY / TITLE buttons, at 2× so 16 px icons show at half size. |
+
+**Sprites:** 16 × 16 from the concept sheet's picks (`chosen` in `tools/sprite_slots.json`). The craft and hostiles draw at 1×; colonists, mines and HUD icons at half size (8 px), still pixel-exact on the 4× canvas. The craft never rotates; it flips horizontally to face its direction. Its art faces left, so it is mirrored at rest (`"mirror": true` on the slot, `MIRROR` set in `config.ts`, as in Mars Patrol).
+
+## Milestones
+
+Each one ends playable. After each: verify, show, and wait for the go-ahead before committing or pushing.
+
+1. **Skeleton.** Project files, title scene, backdrop and hull wrapping round the ring, the craft flying with inertia and the leading view, deploy workflow.
+   *Verify:* `npm run build` passes. CDP flies one full lap (3,328 px) and back, asserting `x` wraps and the craft returns to its start; screenshot across the seam shows no break in hull or parallax.
+2. **First playable.** Laser, colonists, Snatchers (seek, descend, lift, fuse into a Husk), falling and catching, landing, collisions, score, ships, respawn with invulnerability.
+   *Verify:* CDP scripts: shoot a lifting Snatcher → colonist falls → catch (+500) → land (+500); a short drop scores 250, a high one loses the colonist; a Snatcher left alone reaches the top and becomes a Husk, colonist count drops to 9.
+3. **Full roster.** Husk chase and fire, Minelayer and mines, Hound and the stall timer with its lamp, enemy fire with the white-flash warning, pulse.
+   *Verify:* a dev-only spawn per type and a screenshot of each. The pulse clears every hostile, shot and mine on screen and nothing off screen. The HOUND lamp lights 3 s before the first Hound.
+4. **Structure.** Waves in groups of five, wave end and bonus, ring going dark and its restore every 5th wave, extra ship and pulse every 10,000, game over and restart.
+   *Verify:* test hooks clear a wave (bonus maths for 0, 4 and 10 survivors at waves 1 and 6), lose every colonist (all Snatchers turn to Husks, lights out), skip to wave 5 (colonists and lights back).
+5. **HUD and feedback.** Scanner, lamps, pips, edge arrows, hint strip, sound, sparks, rings, shake, flash.
+   *Verify:* screenshots mid-burst (the craft and hazards stay readable); frame time in headless Chrome with effects on (bloom off).
+6. **Touch and mobile.** Stick plus FIRE and PULSE, side bars on wide phones, tappable sound and game-over buttons, landscape overlay, touch mode by default on `(pointer: coarse)`.
+   *Verify:* CDP with touch emulation at 844 × 390 flies, fires, pulses, catches a colonist. Then a real phone.
+7. **Polish.** Balance pass, README with screenshot, MIT licence, repo settings, then publish per Part C.
+
+## Testing
+
+Headless Chrome via CDP with real key, mouse and touch events. Dev builds expose the game as `window.__sentinel` (behind `import.meta.env.DEV`) with spawn and wave hooks. Screenshots at key moments, looked at. Bloom stays off in headless runs (SwiftShader). Real phone before touch is called done.
+
+## Decisions
+
+- **Sprite picks (2026-11-12):** craft 440110 (mirrored), colonist 40575, Snatcher 378915, Husk 645921, Hound 474247, Minelayer 1156519, mine 1166281 (spiked bomb; swapped from 820799 on review), pulse icon 718465.
+- **Colonists at half size (8 px),** to try in play. Revisit in the balance pass if they're hard to see or catch.
+- **Ring size: 8 screens (3,328 px)** to start; it's one number in `config.ts`.
+- **Mines can only be pulsed or avoided.**
+
+## Open questions
+
+- **The name.** Renamed from Guardian to **Sentinel** on 2026-11-12 (directory too). The name is crowded: Geoff Crammond's *The Sentinel* (1986); Sony filed THE SENTINEL for game software in Europe (2016); Sentinel Games, Inc. has pending US applications for downloadable games (2023); ZeniMax filed *The Elder Scrolls VI: Sentinel* (Nov 2026, toys); *Hyper Sentinel* (2018) is a Defender-inspired shooter. Fine for a free personal project; revisit before any commercial use or public promotion.
+- ~~**Repo and Pages URL.**~~ Settled 2026-11-13: the repo was renamed to `leeeeeroyj/sentinel`; Pages at `https://leeeeeroyj.github.io/sentinel/`.
+
+## Status (2026-11-13)
+
+- **Committed and pushed (2026-11-13):** Part A, and milestone 1 (skeleton). Project files (Vite 8.3.8, Phaser 4.2.1, TypeScript 7), title scene, backdrop (stars, planet, skyline, one-lap hull texture, lit and dark palettes), the craft with modern flight and the leading view, a minimal HUD (score, ships, pulses, wave, tappable sound toggle, hint strip), keyboard + mouse and controller input, Pages deploy workflow.
+- **Verified:** `npm run build` passes (typecheck + bundle). `node tools/m1-test.mjs . <out-dir>` drives the dev build in headless Chrome with real key events: 15/15 checks. A full lap right (3,345 px in 20.3 s), x wraps to 0 at the seam and stays in [0, 3328), top speed 175, drag stops the craft, a left push turns it and the view swings to lead left, climb and dive stop at y 42 and 202, Esc returns to the title, no page errors. Screenshots across the seam facing both ways show no break in hull, skyline or stars. 35 fps in headless SwiftShader.
+- **Design changes:** renamed to Sentinel. Mine sprite swapped to 1166281. The hull is a single 3,328 px texture on a TileSprite (Phaser 4 lifted the power-of-two limit), scrolled by world x, so it repeats exactly once per lap.
+- **Not in M1, by plan:** touch controls (M6), scanner and lamps (M5), sound beyond the start jingle (M5).
+- **Re-verified 2026-11-13** before the first commit: `m1-test.mjs` 15/15, `npm run build` passes.
+- **Next:** milestone 2 (first playable).
