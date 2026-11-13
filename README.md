@@ -28,10 +28,6 @@ Sentinel is an original arcade game inspired by the mechanics of Williams Electr
 - **Warning before harm.** New hostiles fade in inside a closing ring, harmless until they're solid, and shooters flash white just before they fire.
 - **Sound with no audio files.** Sound effects are generated in code, sfxr style, when the game loads.
 
-## Status
-
-Sentinel is **complete**: all seven milestones of the build plan are done, from the first playable through the full roster, waves, the scanner, sound and explosions to touch controls (tested on a real phone) and a balance check from real play.
-
 ## How to play
 
 Ten colonists walk the hull. Snatchers seek them out, drop onto them and climb slowly away. If a Snatcher reaches the top of the sky, it fuses with its catch into a Husk and that colonist is gone.

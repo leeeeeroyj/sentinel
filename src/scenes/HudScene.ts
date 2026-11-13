@@ -37,7 +37,7 @@ export interface HudState {
 }
 
 // HUD space is the design size × HUD_SCALE (832×456): sprites drawn here at native 16 px come out half the size
-// of game sprites, with no resampling. The scanner, lamps and colonist pips arrive in later milestones.
+// of game sprites, with no resampling.
 const S = HUD_SCALE;
 const W = WIDTH * S, BAR = HUD_H * S;
 const MAX_ICONS = 4;
