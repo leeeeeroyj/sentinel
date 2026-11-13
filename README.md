@@ -4,7 +4,7 @@
 
 **Hold the ring. Shoot the Snatchers. Catch the colonists.**
 
-A side-scrolling patrol shooter on a looping orbital ring. It runs in the browser with a keyboard and mouse or a controller.
+A side-scrolling patrol shooter on a looping orbital ring. It runs in the browser with a keyboard and mouse, a controller, or touch on a phone.
 
 ### [▶ Play it now](https://leeeeeroyj.github.io/sentinel/)
 
@@ -14,7 +14,7 @@ A side-scrolling patrol shooter on a looping orbital ring. It runs in the browse
 ![Vite](https://img.shields.io/badge/Vite-8-646cff?logo=vite&logoColor=white)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-![Sentinel gameplay: the patrol craft fires its laser across the ring while a Snatcher lifts a colonist away, another drops onto the hull, a rescued colonist falls and two Husks close in](docs/screenshot.png)
+![Sentinel gameplay: the patrol craft destroys a Husk with its laser while a Snatcher lifts a colonist away, a Hound and a Husk close in, a Minelayer leaves mines behind it, and the scanner and alarm lamps light up the top bar](docs/screenshot.png)
 
 </div>
 
@@ -25,19 +25,15 @@ Sentinel is an original arcade game inspired by the mechanics of Williams Electr
 - **A world that loops.** Fly far enough either way and you come back round to where you started. The hull's domes, towers and masts repeat every lap, so you learn the ring as you play.
 - **Push the way you want to go.** No thrust or reverse buttons: push left or right to fly and face that way, and the view swings ahead of you when you turn.
 - **Rescue, not just shooting.** Every abduction is a race. Hit a Snatcher low and its catch drops safely; hit it high and you'd better be underneath.
-- **Warning before harm.** New hostiles fade in inside a closing ring, harmless until they're solid.
+- **Warning before harm.** New hostiles fade in inside a closing ring, harmless until they're solid, and shooters flash white just before they fire.
 - **Sound with no audio files.** Sound effects are generated in code, sfxr style, when the game loads.
 
 ## Status
 
-Sentinel is in active development. This build is the **first playable** version (milestone 2 of 7): the laser, colonists, Snatchers and Husks, rescues, scoring, ships and respawns. Still to come:
+Sentinel is in active development and is **feature-complete** (milestone 6 of 7): the full roster, waves, the scanner, sound, explosions and touch controls are all in. Still to come:
 
-- Minelayers and their mines, Hounds that punish stalling, enemy fire and the pulse (smart bomb)
-- Waves, wave bonuses, the ring going dark when the last colonist is lost, and extra ships every 10,000 points
-- A long-range scanner, alarm lamps, sound effects and explosions
-- Touch controls for phones
-
-Until waves arrive, a new group of five Snatchers warps in whenever the last one is gone.
+- A balance pass, tuned from real play
+- Touch controls checked on a real phone (so far tested in emulation)
 
 ## How to play
 
@@ -48,10 +44,22 @@ Ten colonists walk the hull. Snatchers seek them out, drop onto them and climb s
 - **A short fall** (80 px, five tiles, or less) they survive on their own, for 250. From any higher, they're lost.
 - **Ramming a hostile** destroys it, but costs you a ship. You start with 3. After a respawn your craft blinks and can't be hit for 2 seconds.
 
+- **Hostiles shoot** when they're on screen. Each one flashes white just before it fires an aimed shot.
+- **The pulse** destroys everything on screen, including mines and shots, and scores every kill. You start with 3, and the HUD shows how many are left.
+- **Waves.** Each wave brings more Snatchers and Minelayers, a little faster and shooting more often. Clear every Snatcher, Husk and Minelayer to end it. Each colonist still alive pays a bonus of 100 × the wave number (up to 500 each).
+- **Don't dawdle.** Take too long on a wave and the HOUND lamp blinks: Hounds start warping in near you, one every 10 seconds, until the wave ends.
+- **Lose every colonist** and the ring goes dark: every Snatcher fuses into a Husk and new arrivals come as Husks. Waves 5, 10, 15 and so on bring back all ten colonists and the lights.
+- **Every 10,000 points** earns an extra ship and an extra pulse.
+
+The scanner across the top shows the whole ring, centred on you, and an amber arrow on the screen's edge points to anyone being carried off out of sight.
+
 | Hostile | Points | Behaviour |
 | --- | ---: | --- |
 | Snatcher | 150 | Drifts over the nearest colonist, drops onto them and lifts them away. |
 | Husk | 150 | A Snatcher fused with its catch. Twitchy: it homes in on you, never in a straight line. |
+| Minelayer | 250 | Cruises round the ring, leaving mines behind it. It never shoots. |
+| Hound | 200 | Arrives when a wave drags on. It hunts you hard but swings wide when you turn. |
+| Mine | — | Hangs in the air for 6 seconds. Lasers pass straight through it, so only the pulse clears it. |
 
 | Rescue | Points |
 | --- | ---: |
@@ -61,16 +69,17 @@ Ten colonists walk the hull. Snatchers seek them out, drop onto them and climb s
 
 ## Controls
 
-| | Keyboard + mouse | Controller |
-| --- | --- | --- |
-| Fly and turn | ← → or A D | Left stick or D-pad |
-| Climb and dive | ↑ ↓ or W S | Left stick or D-pad |
-| Fire | Hold Space, J or left click | Hold A, RT or RB |
-| Sound on / off | M, or click the speaker (top right) | Y |
-| Start | Enter or Space, or click **START** | A or Start |
-| Back to the title | Esc | Back |
+| | Keyboard + mouse | Controller | Touch |
+| --- | --- | --- | --- |
+| Fly and turn | ← → or A D | Left stick or D-pad | Left stick |
+| Climb and dive | ↑ ↓ or W S | Left stick or D-pad | Left stick |
+| Fire | Hold Space, J or left click | Hold A, RT or RB | Hold **FIRE** |
+| Pulse | Shift, K or right click | B, LT or LB | Tap **PULSE** |
+| Sound on / off | M, or click the speaker (top right) | Y | Tap the speaker |
+| Start | Enter or Space, or click **START** | A or Start | Tap **START** |
+| Back to the title | Esc | Back | **TITLE** on the game-over screen |
 
-A weak push nudges the craft without turning it. Controllers show up once you press a button.
+A weak push nudges the craft without turning it. Controllers show up once you press a button. On a phone, play in landscape: on wide screens the touch controls sit in the bars beside the game.
 
 ## Run it locally
 
@@ -89,11 +98,14 @@ Every push to `main` builds the game and deploys it to GitHub Pages.
 ```
 src/
   main.ts            game setup
-  config.ts          tunables: ring size, flight, laser, points, colours
+  config.ts          tunables: ring size, flight, hostiles, waves, points, colours
   world.ts           ring maths (wrap-around distance) and the seeded generator
   backdrop.ts        stars, planet, skyline and the hull, baked to tiling textures
-  entities/          colonists, Snatchers and Husks
-  controls.ts        keyboard, mouse and gamepad input
+  waves.ts           the wave table: counts, pace, bonuses
+  entities/          colonists and hostiles
+  controls.ts        keyboard, mouse, gamepad and touch input
+  touch.ts           on-screen stick and buttons for phones
+  effects.ts         sparks, shockwaves, shake and screen wobble
   sfx.ts             procedural sound effects
   scenes/            title screen, the ring and the HUD
 assets/sprites/      the game's 16 × 16 sprites
