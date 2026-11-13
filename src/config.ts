@@ -102,6 +102,33 @@ export const HOSTILE = {
   hitY: 9,
   snatcher: { seek: 30, descend: 34, lift: 13, bob: 10, grab: 10, fuseY: HUD_H + 12 },
   husk: { speed: 62, jitter: 0.35, jitterX: 60, jitterY: 50 },
+  minelayer: { speed: 22, sway: 28, swayRate: 0.9, dropEvery: 1.5 },
+  /** Hounds steer by acceleration, so they overshoot when you turn. */
+  hound: { accelX: 260, accelY: 200, maxSpeed: 125 },
 };
 
-export const POINTS = { snatcher: 150, husk: 150, catch: 500, land: 500, safeFall: 250 };
+/**
+ * Enemy fire. A shooter flashes white for `warn` s, then fires one aimed shot, but only while it's on screen.
+ * Cooldowns are the base gap between shots plus up to `spread` s at random. Minelayers never fire.
+ */
+export const FIRE = {
+  warn: 0.35,
+  speed: 72,
+  life: 3,
+  spread: 1.2,
+  firstDelay: 1.5,
+  cooldown: { snatcher: 2.6, husk: 1.7, hound: 1.2 },
+  hitX: 5,
+  hitY: 4,
+};
+
+/** Mines hang still for `life` s, fade in harmless for `arm` s, blink for the last second, and can't be shot. */
+export const MINE = { life: 6, arm: 0.4, hitX: 7, hitY: 6 };
+
+/**
+ * Stall in a wave for `first` s (minus `perWave` each wave, never under `min`) and the HOUND lamp blinks for `warn` s.
+ * Then a Hound warps in beside you, and another every `every` s until the wave ends.
+ */
+export const HOUNDS = { first: 60, perWave: 5, min: 30, warn: 3, every: 10, ahead: 150 };
+
+export const POINTS = { snatcher: 150, husk: 150, minelayer: 250, hound: 200, catch: 500, land: 500, safeFall: 250 };

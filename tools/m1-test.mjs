@@ -56,7 +56,7 @@ await until(() => evaluate(`__sentinel.scene.isActive('ring') && __sentinel.scen
 await sleep(600);
 const ring = `__sentinel.scene.getScene('ring')`;
 // Milestone 1 checks flight only: clear the hostiles so nothing rams the craft mid-lap.
-await evaluate(`(() => { const s = ${ring}; s.spawning = false; [...s.hostiles].forEach((e) => s.remove(e)); })()`);
+await evaluate(`(() => { const s = ${ring}; s.calm(); })()`);
 const state = () => evaluate(`(() => { const s = ${ring}; return { ...s.craft, camX: s.camX, travel: s.travel }; })()`);
 const s0 = await state();
 check('ring + hud start, craft at start', Math.abs(s0.x - 300) < 1 && s0.facing === 1, JSON.stringify(s0));

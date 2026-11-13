@@ -61,7 +61,7 @@ const state = () => evaluate(`(() => { const s = ${R}; const { carry, ...craft }
   hostiles: s.hostiles.map((e) => ({ id: e.id, kind: e.kind, x: e.x, y: e.y, state: e.state, warp: e.warp, carrying: !!e.carry })),
   alive: s.colonists.filter((c) => c.state !== 'dead').length }; })()`);
 const run = (body) => evaluate(`(() => { const s = ${R}; ${body} })()`);
-const clearHostiles = () => run(`s.spawning = false; [...s.hostiles].forEach((e) => s.remove(e));`);
+const clearHostiles = () => run(`s.calm();`);
 // A Snatcher already lifting colonist i, with the colonist at height y.
 const lifting = (i, y) => run(`const c = s.colonists[${i}]; c.y = ${y}; c.state = 'taken';
   const e = s.spawn('snatcher', c.x, ${y} - 10, 0); e.state = 'lift'; e.target = c; e.carry = c; return e.x;`);
@@ -199,7 +199,7 @@ await tap('Enter');
 await until(() => evaluate(`__sentinel.scene.isActive('ring')`));
 await sleep(400);
 s = await state();
-check('a fresh run starts with a group of five Snatchers', s.hostiles.length === 5 && s.hostiles.every((e) => e.kind === 'snatcher'), `${s.hostiles.length}`);
+check('a fresh run starts with a group of five Snatchers', s.hostiles.filter((e) => e.kind === 'snatcher').length === 5, s.hostiles.map((e) => e.kind).join());
 
 const fps = await evaluate(`Math.round(__sentinel.loop.actualFps)`);
 console.log(`fps (headless, SwiftShader): ${fps}`);

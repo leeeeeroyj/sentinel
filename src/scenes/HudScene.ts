@@ -10,6 +10,10 @@ export interface HudState {
   pulses: number;
   wave: number;
   device: Device;
+  /** HOUND lamp: blinks as the warning, stays lit while Hounds are out. */
+  hound: 'off' | 'blink' | 'on';
+  /** TAKEN lamp: a Snatcher is holding a colonist. */
+  taken: boolean;
 }
 
 // HUD space is the design size × HUD_SCALE (832×456): sprites drawn here at native 16 px come out half the size
@@ -23,6 +27,7 @@ const HINTS: Record<Device, string> = {
   touch: 'STICK FLY  ·  HOLD FIRE  ·  TAP PULSE',
 };
 const SPEAKER = { x: W - 28, y: 8, w: 20, h: 16 };
+const LAMP = { x: 716, w: 76, h: 20, hound: 6, taken: 32 };
 
 const pts = (n: number) => String(n).padStart(6, '0').replace(/\B(?=(\d{3})+(?!\d))/g, ',');
 
@@ -34,6 +39,7 @@ export class HudScene extends Phaser.Scene {
   private dynamic!: Phaser.GameObjects.Graphics;
   private icons: Phaser.GameObjects.Image[] = [];
   private shown = '';
+  private lamps!: { hound: Phaser.GameObjects.Text; taken: Phaser.GameObjects.Text };
 
   constructor() {
     super('hud');
@@ -55,6 +61,8 @@ export class HudScene extends Phaser.Scene {
     label(624, 8, 'WAVE');
     this.wave = label(684, 8, '', TEXT.amber);
     this.dynamic = this.add.graphics();
+    const lampText = (y: number, text: string) => label(LAMP.x + LAMP.w / 2, y + 1, text).setOrigin(0.5, 0).setDepth(1);
+    this.lamps = { hound: lampText(LAMP.hound, 'HOUND'), taken: lampText(LAMP.taken, 'TAKEN') };
     this.hint = label(W / 2, (GROUND_Y + 4) * S, '').setOrigin(0.5, 0);
 
     // Phones have no M key: the speaker is a tap target, padded for a thumb.
@@ -65,6 +73,7 @@ export class HudScene extends Phaser.Scene {
   update() {
     const s = this.registry.get(HUD_STATE) as HudState | undefined;
     if (!s) return;
+    this.dynamic.clear();
     this.score.setText(pts(s.score));
     this.wave.setText(String(s.wave).padStart(2, '0'));
     this.hint.setText(HINTS[s.device]);
@@ -79,12 +88,24 @@ export class HudScene extends Phaser.Scene {
       ];
     }
 
+    const blink = (hz: number) => Math.floor(this.time.now / (500 / hz)) % 2 === 0;
+    this.lamp(this.lamps.hound, LAMP.hound, s.hound === 'on' || (s.hound === 'blink' && blink(4)), COLORS.danger);
+    this.lamp(this.lamps.taken, LAMP.taken, s.taken && blink(3), COLORS.amber);
+
     // Speaker: three waves when on, a cross when muted. Drawn in 2 px blocks to match the game's pixels.
     const muted = this.registry.get(MUTED) === true;
-    const g = this.dynamic.clear().fillStyle(muted ? COLORS.danger : COLORS.ink);
+    const g = this.dynamic.fillStyle(muted ? COLORS.danger : COLORS.ink);
     const px = (x: number, y: number, w = 1, h = 1) => g.fillRect(SPEAKER.x + x * 2, SPEAKER.y + y * 2, w * 2, h * 2);
     px(0, 2, 2, 3); px(2, 1, 1, 5); px(3, 0, 1, 7);
     if (muted) for (let i = 0; i < 4; i++) { px(5 + i, 1 + i); px(8 - i, 1 + i); }
     else { px(5, 2, 1, 3); px(7, 1, 1, 5); px(9, 0, 1, 7); }
+  }
+
+  /** An alarm lamp: a dark slot with a dim label, or filled with its colour and a dark label when lit. */
+  private lamp(text: Phaser.GameObjects.Text, y: number, on: boolean, color: number) {
+    const g = this.dynamic;
+    g.fillStyle(on ? color : COLORS.panel).fillRect(LAMP.x, y, LAMP.w, LAMP.h);
+    g.lineStyle(2, on ? color : COLORS.line).strokeRect(LAMP.x + 1, y + 1, LAMP.w - 2, LAMP.h - 2);
+    text.setColor(on ? '#060813' : TEXT.dim);
   }
 }
