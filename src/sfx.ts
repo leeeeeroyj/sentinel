@@ -27,6 +27,25 @@ export interface Voice {
 export const SOUNDS = {
   select: { wave: 'square', freq: 880, sustain: 0.04, decay: 0.04, duty: 0.5, volume: 0.2 },
   start: { wave: 'square', freq: 440, steps: [0, 7, 12, 19], sustain: 0.28, decay: 0.1, duty: 0.25, volume: 0.3 },
+  laser: { wave: 'square', freq: 1900, slide: -5, sustain: 0.03, decay: 0.07, duty: 0.25, smooth: 0.6, volume: 0.12 },
+  boom: { wave: 'noise', freq: 1400, slide: -2.5, sustain: 0.04, decay: 0.32, volume: 0.5 },
+  boomBig: { wave: 'noise', freq: 900, slide: -1.6, sustain: 0.1, decay: 0.7, volume: 0.65 },
+  die: { wave: 'noise', freq: 1100, slide: -1.2, sustain: 0.15, decay: 0.9, volume: 0.8 },
+  bolt: { wave: 'square', freq: 1500, slide: -4, sustain: 0.02, decay: 0.14, duty: 0.3, volume: 0.16 },
+  mine: { wave: 'sine', freq: 330, slide: -1, sustain: 0.03, decay: 0.08, volume: 0.25 },
+  snatch: { wave: 'square', freq: 990, steps: [0, 5, 0, 5], sustain: 0.36, decay: 0.05, duty: 0.5, volume: 0.14 },
+  fall: { wave: 'sine', freq: 1400, slide: -0.9, sustain: 0.55, decay: 0.15, volume: 0.22 },
+  catch: { wave: 'square', freq: 660, steps: [0, 7, 12], sustain: 0.12, decay: 0.08, duty: 0.25, volume: 0.3 },
+  land: { wave: 'triangle', freq: 880, steps: [0, 5, 12], sustain: 0.2, decay: 0.25, volume: 0.45 },
+  lost: { wave: 'triangle', freq: 440, slide: -1.5, sustain: 0.2, decay: 0.2, volume: 0.4 },
+  fuse: { wave: 'saw', freq: 220, slide: -1, vibrato: [14, 0.2], sustain: 0.25, decay: 0.2, smooth: 0.3, volume: 0.35 },
+  warp: { wave: 'sine', freq: 180, slide: 2, vibrato: [18, 0.3], sustain: 0.12, decay: 0.12, volume: 0.3 },
+  pulse: { wave: 'noise', freq: 600, slide: -1, attack: 0.02, sustain: 0.2, decay: 0.8, smooth: 0.4, volume: 0.75 },
+  houndWarn: { wave: 'square', freq: 520, steps: [0, 0, 6, 6], sustain: 0.5, decay: 0.05, duty: 0.5, volume: 0.16 },
+  dark: { wave: 'saw', freq: 330, steps: [0, -3, -7, -12], sustain: 1, decay: 0.4, smooth: 0.3, volume: 0.3 },
+  waveClear: { wave: 'square', freq: 523.25, steps: [0, 4, 7, 12, 16, 19, 24], sustain: 0.7, decay: 0.3, duty: 0.25, volume: 0.28 },
+  extraShip: { wave: 'triangle', freq: 523.25, steps: [0, 4, 7, 12, 7, 12], sustain: 0.6, decay: 0.15, volume: 0.5 },
+  gameOver: { wave: 'square', freq: 392, steps: [0, -2, -4, -5, -7, -12], sustain: 1.1, decay: 0.4, duty: 0.5, volume: 0.25 },
 } satisfies Record<string, Voice>;
 
 export type SoundName = keyof typeof SOUNDS;

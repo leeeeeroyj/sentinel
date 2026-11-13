@@ -164,3 +164,22 @@ export const WAVES = {
 
 /** An extra ship and an extra pulse every this many points. */
 export const EXTRA_EVERY = 10_000;
+
+/**
+ * Bloom (a full-screen blur every frame) is the costly effect: off by default, and always off in headless tests.
+ * Sparks, rings and shake are cheap and always on.
+ */
+export const FX = {
+  bloom: { enabled: false, threshold: 0.45, spread: 1.4, offset: 3, steps: 2, amount: 0.75 },
+};
+
+/** Spark colours for each thing that can blow up, and its dot colour on the scanner (the first entry). */
+export const KIND_COLORS = {
+  snatcher: [0x7dffb0, 0x6ff7ff],
+  husk: [0xff5fd2, 0xff4d6d],
+  minelayer: [0xffc04d, 0xff7a3d],
+  hound: [0xff4d6d, 0xffd166],
+  player: [0xffffff, 0x6ff7ff, 0xffc04d],
+  colonist: [0xff4d6d, 0xffffff],
+  mine: [0xffc04d, 0xffffff],
+} as const;

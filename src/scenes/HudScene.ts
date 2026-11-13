@@ -1,9 +1,23 @@
 import Phaser from 'phaser';
-import { COLORS, FONT, GROUND_Y, HUD_H, HUD_SCALE, HUD_STATE, MIRROR, TEXT, WIDTH } from '../config';
+import { COLORS, FONT, GROUND_Y, HUD_H, HUD_SCALE, HUD_STATE, KIND_COLORS, MIRROR, TEXT, WIDTH, WORLD_W } from '../config';
+import { wdx } from '../world';
 import type { Device } from '../controls';
 import { MUTED, toggleMute } from '../sfx';
 import type { RingScene } from './RingScene';
 import { fitCamera } from '../view';
+
+/** Scanner dot codes, so the ring scene can send a flat number list each frame. */
+export const SCAN = { colonist: 0, taken: 1, snatcher: 2, husk: 3, minelayer: 4, hound: 5 } as const;
+const SCAN_COLORS = [COLORS.beam, COLORS.amber, KIND_COLORS.snatcher[0], KIND_COLORS.husk[0], KIND_COLORS.minelayer[0], KIND_COLORS.hound[0]];
+
+export interface ScanState {
+  craftX: number;
+  craftY: number;
+  camX: number;
+  dark: boolean;
+  /** Flat triples: world x, y, SCAN code. */
+  dots: number[];
+}
 
 export interface HudState {
   score: number;
@@ -17,6 +31,9 @@ export interface HudState {
   taken: boolean;
   /** The last ship is gone: show the game-over panel. */
   over: boolean;
+  scan: ScanState;
+  /** One per colonist: 0 lost, 1 alive, 2 being carried off. */
+  colonists: number[];
 }
 
 // HUD space is the design size × HUD_SCALE (832×456): sprites drawn here at native 16 px come out half the size
@@ -35,6 +52,9 @@ const OVER_HINTS: Record<Device, string> = {
   touch: 'TAP RETRY OR TITLE',
 };
 const PANEL = { w: 360, h: 150, y: 120 };
+/** The scanner, in HUD pixels: the whole ring squeezed between x0 and x1, centred on the craft. */
+const SCANNER = { x0: 224, x1: 608, y0: 4, y1: 58 };
+const PIPS = { x: 624, y: 36, step: 8, w: 6, h: 12 };
 const SPEAKER = { x: W - 28, y: 8, w: 20, h: 16 };
 const LAMP = { x: 716, w: 76, h: 20, hound: 6, taken: 32 };
 
@@ -106,6 +126,11 @@ export class HudScene extends Phaser.Scene {
     }
 
     const blink = (hz: number) => Math.floor(this.time.now / (500 / hz)) % 2 === 0;
+    this.drawScanner(s.scan, blink);
+    s.colonists.forEach((c, i) => {
+      this.dynamic.fillStyle(c === 0 ? COLORS.line : c === 2 && blink(6) ? COLORS.amber : COLORS.beam)
+        .fillRect(PIPS.x + i * PIPS.step, PIPS.y, PIPS.w, PIPS.h);
+    });
     this.lamp(this.lamps.hound, LAMP.hound, s.hound === 'on' || (s.hound === 'blink' && blink(4)), COLORS.danger);
     this.lamp(this.lamps.taken, LAMP.taken, s.taken && blink(3), COLORS.amber);
 
@@ -136,6 +161,36 @@ export class HudScene extends Phaser.Scene {
     const retry = button(-80, 'RETRY', () => ring().retry());
     const title2 = button(80, 'TITLE', () => ring().leave());
     return this.add.container(W / 2, PANEL.y, [g, title, this.overScore, retry, title2]).setDepth(5).setVisible(false);
+  }
+
+  /**
+   * The whole ring at a glance, centred on the craft: colonists cyan (amber while taken), hostiles in their colours,
+   * the craft a blinking white dash, and brackets marking what's on screen.
+   */
+  private drawScanner(s: ScanState, blink: (hz: number) => boolean) {
+    const { x0, x1, y0, y1 } = SCANNER, w = x1 - x0, mid = x0 + w / 2, k = w / WORLD_W, g = this.dynamic;
+    g.fillStyle(0x04050c).fillRect(x0, y0, w, y1 - y0);
+    g.lineStyle(2, COLORS.line).strokeRect(x0 + 1, y0 + 1, w - 2, y1 - y0 - 2);
+    g.fillStyle(s.dark ? 0x3a1520 : 0x2a8fa6);
+    for (let x = x0 + 2; x < x1 - 2; x += 4) g.fillRect(x, y1 - 8, 2, 2);
+    const sy = (y: number) => y0 + 4 + ((y - HUD_H) / (GROUND_Y - HUD_H)) * (y1 - y0 - 12);
+    const dot = (wx: number, wy: number, color: number, dw: number, dh: number) => {
+      const x = mid + wdx(s.craftX, wx) * k;
+      if (x < x0 + 2 || x > x1 - 2 - dw) return;
+      g.fillStyle(color).fillRect(Math.round(x), Math.round(sy(wy)), dw, dh);
+    };
+    for (let i = 0; i < s.dots.length; i += 3) {
+      const code = s.dots[i + 2];
+      if (code === SCAN.taken && !blink(6)) dot(s.dots[i], s.dots[i + 1], 0xffffff, 2, 4);
+      else if (code <= SCAN.taken) dot(s.dots[i], s.dots[i + 1], SCAN_COLORS[code], 2, 4);
+      else dot(s.dots[i], s.dots[i + 1], SCAN_COLORS[code], 4, 4);
+    }
+    if (blink(3)) dot(s.craftX, s.craftY, 0xffffff, 6, 2);
+    g.fillStyle(COLORS.ink);
+    for (const [edge, d] of [[-WIDTH / 2, 1], [WIDTH / 2, -1]] as const) {
+      const rx = Math.round(mid + wdx(s.craftX, s.camX + edge) * k), hx = d > 0 ? rx : rx - 4;
+      g.fillRect(rx, y0 + 2, 2, 6).fillRect(hx, y0 + 2, 6, 2).fillRect(rx, y1 - 8, 2, 6).fillRect(hx, y1 - 4, 6, 2);
+    }
   }
 
   /** An alarm lamp: a dark slot with a dim label, or filled with its colour and a dark label when lit. */
