@@ -3,6 +3,7 @@ import {
   COLONIST, COLORS, CRAFT, EXTRA_EVERY, FIRE, FONT, KIND_COLORS, GROUND_Y, HOSTILE, HOUNDS, HUD_H, HUD_STATE, LASER, LIFE, MINE, MIRROR, POINTS,
   RENDER_SCALE, TEXT, WAVES, WIDTH, WORLD_W,
 } from '../config';
+import { ATTRACT, DEMO_SECS } from '../attract';
 import { Backdrop } from '../backdrop';
 import { Controls, type ControlState } from '../controls';
 import { createColonists, drop, setDown, updateColonist, type Colonist } from '../entities/colonist';
@@ -10,6 +11,7 @@ import {
   canFire, createHostile, fuse, release, tickFire, updateHound, updateHusk, updateMinelayer, updateSnatcher, type Hostile, type HostileKind,
 } from '../entities/hostile';
 import { Effects } from '../effects';
+import { loadHi, saveHi } from '../hi';
 import { touchControls } from '../touch';
 import { playSound, toggleMute, type SoundName } from '../sfx';
 import { bonusFor, firePaceOf, minelayersIn, paceOf, restores, snatchersIn } from '../waves';
@@ -113,12 +115,34 @@ export class RingScene extends Phaser.Scene {
   private clock = 0;
   private fireCool = 0;
   private leaving = false;
+  /** Paused: nothing moves and the HUD shows RESUME and TITLE. */
+  paused = false;
+  private hi = 0;
+  private newHi = false;
+  /** Attract mode: this demo's seed (the next demo uses the one after); -1 in a real run. */
+  private demoSeed = -1;
+  private demoOver = false;
+  private pilotPulse = 0;
+  /** Dev: demos started since the page loaded (attract mode). */
+  static demos = 0;
 
   constructor() {
     super('ring');
   }
 
-  create() {
+  /** `attract` (a seed) runs a demo: the pilot flies from a wave picked by the seed. */
+  create(data: { attract?: number } = {}) {
+    const demo = data.attract !== undefined;
+    this.demoSeed = demo ? data.attract! : -1;
+    this.demoOver = false;
+    this.pilotPulse = 6;
+    this.paused = false;
+    this.hi = loadHi();
+    this.newHi = false;
+    // A restart from the pause panel mustn't leave the clocks stopped.
+    this.time.paused = false;
+    this.tweens.resumeAll();
+    if (demo) RingScene.demos++;
     this.craft = { x: CRAFT.startX, y: CRAFT.startY, vx: 0, facing: 1, lead: CRAFT.lead, invuln: 0, down: 0 };
     this.camX = wrap(this.craft.x + this.craft.lead);
     this.travel = 0;
@@ -140,7 +164,7 @@ export class RingScene extends Phaser.Scene {
     fitCamera(this, RENDER_SCALE);
     this.warnBeeps = 0;
     this.cameras.main.fadeIn(250);
-    this.controls = new Controls(this);
+    if (!demo) this.controls = new Controls(this);
     this.backdrop = new Backdrop(this, 0);
     this.colonists = createColonists(this);
     this.lines = this.add.graphics().setDepth(8);
@@ -151,21 +175,99 @@ export class RingScene extends Phaser.Scene {
     const bannerText = (y: number, size: number, color: string) =>
       this.add.text(WIDTH / 2, y, '', { fontFamily: FONT, fontSize: `${size}px`, color, align: 'center' }).setOrigin(0.5).setDepth(5);
     this.banner = { title: bannerText(84, 16, TEXT.amber), sub: bannerText(102, 8, TEXT.ink), life: 0 };
-    this.startWave(1);
+    this.startWave(demo ? 1 + (this.demoSeed % 4) : 1);
+    if (demo) {
+      // A demo starts a little way behind the first Snatcher, so the fight is on screen at once.
+      const first = this.hostiles.find((e) => e.kind === 'snatcher') ?? this.hostiles[0];
+      if (first) {
+        this.craft.x = wrap(first.x - 150);
+        this.camX = wrap(this.craft.x + this.craft.lead);
+      }
+    }
     this.scene.launch('hud');
-    touchControls.show(true);
+    touchControls.show(!demo);
+    // A phone call, a tab switch or the screen locking pauses the run.
+    const hidden = () => { if (document.hidden) this.setPaused(true); };
+    if (!demo) document.addEventListener('visibilitychange', hidden);
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
       this.scene.stop('hud');
       touchControls.show(false);
+      document.removeEventListener('visibilitychange', hidden);
     });
+  }
+
+  /** Pauses or resumes (not once the run is over, or in attract mode). */
+  setPaused(on: boolean) {
+    if (this.demoSeed >= 0 || on === this.paused || (on && (this.over >= 0 || this.leaving))) return;
+    this.paused = on;
+    this.time.paused = on;
+    if (on) this.tweens.pauseAll();
+    else this.tweens.resumeAll();
+    touchControls.show(!on);
+    this.sfx('catch');
+  }
+
+  /**
+   * Attract mode's pilot, from the concept sheet: catch anyone falling, carry them down, otherwise hunt the nearest
+   * hostile (a Snatcher carrying someone first), firing when it's lined up. It climbs or dives out of the way of shots
+   * and armed mines close ahead, and pulses when it's crowded.
+   */
+  private pilot(dt: number): ControlState {
+    const c = this.craft, out: ControlState = { move: { x: 0, y: 0 }, fire: false, pulse: false, confirm: false, back: false, mute: false, pause: false, device: 'kbm' };
+    if (!this.flying) return out;
+    if (c.carry) { out.move.y = 1; return out; }
+    const falling = this.colonists.find((k) => k.state === 'falling');
+    let target: { x: number; y: number } | undefined, catching = false;
+    if (falling) { target = falling; catching = true; } else {
+      let best = Infinity;
+      for (const e of this.hostiles) {
+        if (e.dead || e.warp > 0) continue;
+        const d = Math.abs(wdx(c.x, e.x)) - (e.kind === 'snatcher' && e.carry ? 600 : 0);
+        if (d < best) { best = d; target = e; }
+      }
+    }
+    if (target) {
+      const dx = wdx(c.x, target.x), dy = target.y - c.y, dist = Math.abs(dx);
+      out.move.y = Math.abs(dy) > 3 ? Math.sign(dy) * Math.min(1, Math.abs(dy) / 20) : 0;
+      if (catching) out.move.x = dist > 6 ? Math.sign(dx) : 0;
+      else {
+        if (dist > 140) out.move.x = Math.sign(dx);
+        else if (Math.sign(dx) !== c.facing) out.move.x = Math.sign(dx) * 0.4;
+        out.fire = Math.sign(dx) === c.facing && Math.abs(dy) < 8 && dist < 280;
+        // Back off a little; facing holds because the push is weak.
+        if (out.fire && dist < 60) out.move.x = -Math.sign(dx) * 0.35;
+      }
+    }
+    // Dodge: an enemy shot or an armed mine just ahead at about the craft's height.
+    for (const t of [...this.shots, ...this.mines.filter((m) => m.arm <= 0)]) {
+      const dx = wdx(c.x, t.x), dy = t.y - c.y;
+      if (Math.abs(dx) < 36 && Math.abs(dy) < 12) out.move.y = dy > 0 || c.y > CRAFT.maxY - 12 ? -1 : 1;
+    }
+    this.pilotPulse -= dt;
+    const near = this.hostiles.filter((e) => !e.dead && e.warp <= 0 && Math.abs(wdx(c.x, e.x)) < 70 && Math.abs(e.y - c.y) < 40).length;
+    if (this.pulses > 1 && this.pilotPulse <= 0 && near >= 3) { out.pulse = true; this.pilotPulse = 8; }
+    return out;
   }
 
   update(_time: number, delta: number) {
     const dt = Math.min(0.05, delta / 1000);
-    this.clock += dt;
-    const input = this.controls.read();
+    const demo = this.demoSeed >= 0;
+    const input = demo ? this.pilot(dt) : this.controls.read();
     if (input.mute) toggleMute(this);
     if (input.back) this.leave();
+    if (demo && !this.demoOver && ((this.over >= 0 && this.over > 1) || this.clock > DEMO_SECS)) {
+      // Attract mode: the next demo, from the next seed.
+      this.demoOver = true;
+      this.scene.restart({ attract: (this.demoSeed + 1) % 2 ** 31 });
+      return;
+    }
+    if (this.paused) {
+      if (input.pause || input.confirm) this.setPaused(false);
+      this.publishHud(input);
+      return;
+    }
+    if (input.pause && this.over < 0) { this.setPaused(true); this.publishHud(input); return; }
+    this.clock += dt;
     if (this.over >= 0 && (this.over += dt) > LIFE.retryDelay && input.confirm) this.retry();
 
     this.fly(input, dt);
@@ -185,7 +287,10 @@ export class RingScene extends Phaser.Scene {
     this.backdrop.update(this.camX, this.travel, this.clock);
     this.fx.update(dt, this.travel);
     this.draw();
+    this.publishHud(input);
+  }
 
+  private publishHud(input: ControlState) {
     const hud: HudState = {
       score: this.score, ships: this.ships, pulses: this.pulses, wave: this.wave, device: input.device,
       hound: this.hostiles.some((e) => e.kind === 'hound') ? 'on' : this.houndWarning ? 'blink' : 'off',
@@ -193,6 +298,7 @@ export class RingScene extends Phaser.Scene {
       over: this.over >= 0,
       scan: this.scanState(),
       colonists: this.colonists.map((c) => (c.state === 'dead' ? 0 : c.state === 'taken' ? 2 : 1)),
+      hi: Math.max(this.hi, this.score), newHi: this.newHi, paused: this.paused, attract: this.demoSeed >= 0,
     };
     this.registry.set(HUD_STATE, hud);
   }
@@ -565,6 +671,7 @@ export class RingScene extends Phaser.Scene {
   }
 
   private sfx(name: SoundName) {
+    if (ATTRACT) return;
     playSound(this, name);
   }
 
@@ -583,6 +690,7 @@ export class RingScene extends Phaser.Scene {
     c.down = LIFE.respawnDelay;
     if (this.ships === 0) {
       this.over = 0;
+      this.newHi = saveHi(this.score);
       touchControls.show(false);
       this.time.delayedCall(900, () => this.sfx('gameOver'));
     }
@@ -702,6 +810,8 @@ export class RingScene extends Phaser.Scene {
   leave() {
     if (this.leaving) return;
     this.leaving = true;
+    // Leaving mid-run still counts toward the high score.
+    if (this.over < 0) saveHi(this.score);
     this.cameras.main.fadeOut(250);
     this.cameras.main.once(Phaser.Cameras.Scene2D.Events.FADE_OUT_COMPLETE, () => this.scene.start('title'));
   }

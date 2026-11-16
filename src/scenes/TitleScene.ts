@@ -1,4 +1,6 @@
 import Phaser from 'phaser';
+import { ATTRACT, attractSeed } from '../attract';
+import { loadHi } from '../hi';
 import { CRAFT, FONT, MIRROR, RENDER_SCALE, SPRITES, TEXT, WIDTH, type SpriteKey } from '../config';
 import { Backdrop } from '../backdrop';
 import { Controls } from '../controls';
@@ -26,6 +28,8 @@ export class TitleScene extends Phaser.Scene {
   }
 
   create() {
+    // Attract mode goes straight to the ring once the sprites are loaded.
+    if (ATTRACT) return void this.scene.start('ring', { attract: attractSeed() });
     this.leaving = false;
     this.padStatus = undefined;
     this.controls = new Controls(this);
@@ -45,6 +49,8 @@ export class TitleScene extends Phaser.Scene {
     text(cx, 10, 'ORBITAL RING PATROL', 8, TEXT.dim);
     text(cx, 20, 'SENTINEL', 24, TEXT.amber);
     text(cx, 48, 'SHOOT THE SNATCHERS. CATCH THE COLONISTS. HOLD THE RING.', 8, TEXT.ink);
+    const hi = loadHi();
+    if (hi) text(WIDTH - 40, 2, `HI ${hi.toLocaleString('en-US')}`, 8, TEXT.amber);
 
     text(66, 64, 'YOU', 8, TEXT.dim);
     sprite('player', 66, 84);
@@ -65,12 +71,12 @@ export class TitleScene extends Phaser.Scene {
       this.add.text(x + 4, 154, actions, { fontFamily: FONT, fontSize: '8px', color: TEXT.dim, lineSpacing: 2 }).setDepth(5);
     };
     if (touchScreen) {
-      column(cx, 'TOUCH', 'LEFT THUMB\nRIGHT THUMB\nTAP', 'STICK: FLY\nFIRE + PULSE\nSOUND, TOP RIGHT');
+      column(cx, 'TOUCH', 'LEFT THUMB\nRIGHT THUMB\nTAP II\nTAP SPEAKER', 'STICK: FLY\nFIRE + PULSE\nPAUSE, TOP LEFT\nSOUND, TOP RIGHT');
       return;
     }
-    column(112, 'KEYBOARD + MOUSE', '← →\n↑ ↓\nSPACE / CLICK\nSHIFT / R-CLICK\nM', 'FLY + FACE\nCLIMB / DIVE\nFIRE\nPULSE\nSOUND ON/OFF');
-    column(304, 'CONTROLLER', 'L-STICK\nA / RT\nB / LT\nY', 'FLY + FACE\nFIRE\nPULSE\nSOUND ON/OFF');
-    this.padStatus = text(cx, 214, '', 8, TEXT.dim);
+    column(112, 'KEYBOARD + MOUSE', '← →\n↑ ↓\nSPACE / CLICK\nSHIFT / R-CLICK\nP\nM', 'FLY + FACE\nCLIMB / DIVE\nFIRE\nPULSE\nPAUSE\nSOUND ON/OFF');
+    column(304, 'CONTROLLER', 'L-STICK\nA / RT\nB / LT\nSTART\nY', 'FLY + FACE\nFIRE\nPULSE\nPAUSE\nSOUND ON/OFF');
+    this.padStatus = text(cx, 218, '', 8, TEXT.dim);
   }
 
   update(_time: number, delta: number) {

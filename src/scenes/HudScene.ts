@@ -34,6 +34,12 @@ export interface HudState {
   scan: ScanState;
   /** One per colonist: 0 lost, 1 alive, 2 being carried off. */
   colonists: number[];
+  /** The high score (this run's score once it beats the stored one), and whether this run set it. */
+  hi: number;
+  newHi: boolean;
+  paused: boolean;
+  /** Attract mode: no hints, pause, sound or game-over panel. */
+  attract: boolean;
 }
 
 // HUD space is the design size × HUD_SCALE (832×456): sprites drawn here at native 16 px come out half the size
@@ -42,8 +48,8 @@ const S = HUD_SCALE;
 const W = WIDTH * S, BAR = HUD_H * S;
 const MAX_ICONS = 4;
 const HINTS: Record<Device, string> = {
-  kbm: 'ARROWS FLY  ·  SPACE FIRE  ·  SHIFT PULSE  ·  M SOUND',
-  pad: 'STICK FLY  ·  A FIRE  ·  B PULSE  ·  Y SOUND',
+  kbm: 'ARROWS FLY  ·  SPACE FIRE  ·  SHIFT PULSE  ·  P PAUSE  ·  M SOUND',
+  pad: 'STICK FLY  ·  A FIRE  ·  B PULSE  ·  START PAUSE  ·  Y SOUND',
   touch: 'STICK FLY  ·  HOLD FIRE  ·  TAP PULSE',
 };
 const OVER_HINTS: Record<Device, string> = {
@@ -51,7 +57,10 @@ const OVER_HINTS: Record<Device, string> = {
   pad: 'A RETRY  ·  BACK TITLE',
   touch: 'TAP RETRY OR TITLE',
 };
-const PANEL = { w: 360, h: 150, y: 120 };
+const PAUSE_HINTS: Record<Device, string> = { kbm: 'P OR ENTER RESUME  ·  ESC TITLE', pad: 'START OR A RESUME  ·  BACK TITLE', touch: 'TAP RESUME' };
+const PANEL = { w: 360, h: 172, y: 110 };
+/** Pause on touch: two bars after the score, with a thumb-sized tap zone. */
+const PAUSE = { x: 196, y: 9 };
 /** The scanner, in HUD pixels: the whole ring squeezed between x0 and x1, centred on the craft. */
 const SCANNER = { x0: 224, x1: 608, y0: 4, y1: 58 };
 const PIPS = { x: 624, y: 36, step: 8, w: 6, h: 12 };
@@ -71,6 +80,12 @@ export class HudScene extends Phaser.Scene {
   private lamps!: { hound: Phaser.GameObjects.Text; taken: Phaser.GameObjects.Text };
   private overPanel!: Phaser.GameObjects.Container;
   private overScore!: Phaser.GameObjects.Text;
+  private overHi!: Phaser.GameObjects.Text;
+  private pauseMenu!: Phaser.GameObjects.Container;
+  private pauseHint!: Phaser.GameObjects.Text;
+  private pauseZones: Phaser.GameObjects.Zone[] = [];
+  private pauseTap!: Phaser.GameObjects.Zone;
+  private speakerTap!: Phaser.GameObjects.Zone;
 
   constructor() {
     super('hud');
@@ -99,8 +114,37 @@ export class HudScene extends Phaser.Scene {
     this.overPanel = this.buildOverPanel(label);
 
     // Phones have no M key: the speaker is a tap target, padded for a thumb.
-    this.add.zone(SPEAKER.x - 12, 0, SPEAKER.w + 24, BAR).setOrigin(0).setInteractive({ useHandCursor: true })
+    this.speakerTap = this.add.zone(SPEAKER.x - 12, 0, SPEAKER.w + 24, BAR).setOrigin(0).setInteractive({ useHandCursor: true })
       .on('pointerdown', () => toggleMute(this));
+    // And no P key: on touch, II after the score pauses.
+    this.pauseTap = this.add.zone(PAUSE.x - 16, 0, 46, BAR).setOrigin(0).setInteractive({ useHandCursor: true })
+      .on('pointerdown', () => (this.scene.get('ring') as RingScene).setPaused(true));
+    this.buildPause(label);
+  }
+
+  /** The pause panel: RESUME and TITLE, as buttons a thumb or the mouse can hit. */
+  private buildPause(label: (x: number, y: number, text: string, color?: string) => Phaser.GameObjects.Text) {
+    const ring = () => this.scene.get('ring') as RingScene;
+    this.pauseZones = [];
+    const w = 380, h = 190, x = W / 2, top = PANEL.y, g = this.add.graphics();
+    g.fillStyle(COLORS.void, 0.55).fillRect(0, BAR, W, GROUND_Y * S - BAR);
+    g.fillStyle(COLORS.void, 0.94).fillRect(x - w / 2, top, w, h);
+    g.lineStyle(2, COLORS.line).strokeRect(x - w / 2, top, w, h);
+    const parts: Phaser.GameObjects.GameObject[] = [g, this.add.text(x, top + 20, 'PAUSED', { fontFamily: FONT, fontSize: '32px', color: TEXT.ink }).setOrigin(0.5, 0)];
+    const button = (bx: number, text: string, primary: boolean, act: () => void) => {
+      const bw = 150, bh = 48, by = top + 84, art = this.add.graphics();
+      if (primary) art.fillStyle(COLORS.amber).fillRect(bx - bw / 2, by, bw, bh);
+      else art.lineStyle(2, COLORS.ink).strokeRect(bx - bw / 2 + 1, by + 1, bw - 2, bh - 2);
+      const t = label(bx, by + bh / 2, text, primary ? '#060813' : TEXT.ink).setOrigin(0.5);
+      const zone = this.add.zone(bx - bw / 2, by, bw, bh).setOrigin(0).setInteractive({ useHandCursor: true }).on('pointerdown', act);
+      this.pauseZones.push(zone);
+      parts.push(art, t, zone);
+    };
+    button(x - 85, 'RESUME', true, () => ring().setPaused(false));
+    button(x + 85, 'TITLE', false, () => ring().leave());
+    this.pauseHint = label(x, top + h - 34, '').setOrigin(0.5, 0);
+    parts.push(this.pauseHint);
+    this.pauseMenu = this.add.container(0, 0, parts).setVisible(false).setDepth(10);
   }
 
   update() {
@@ -109,11 +153,19 @@ export class HudScene extends Phaser.Scene {
     this.dynamic.clear();
     this.score.setText(pts(s.score));
     this.wave.setText(String(s.wave).padStart(2, '0'));
-    this.hint.setText((s.over ? OVER_HINTS : HINTS)[s.device]);
-    if (s.over !== this.overPanel.visible) {
-      this.overPanel.setVisible(s.over);
+    this.hint.setText(s.attract || s.paused ? '' : (s.over ? OVER_HINTS : HINTS)[s.device]);
+    const over = s.over && !s.attract;
+    if (over !== this.overPanel.visible) {
+      this.overPanel.setVisible(over);
       this.overScore.setText(`SCORE ${pts(s.score)}   ·   WAVE ${String(s.wave).padStart(2, '0')}`);
+      this.overHi.setText(s.newHi ? 'NEW HIGH SCORE!' : `HI ${pts(s.hi)}`).setColor(s.newHi ? TEXT.amber : TEXT.dim);
     }
+    const pauseTap = s.device === 'touch' && !s.attract && !s.over && !s.paused;
+    this.pauseTap.input!.enabled = pauseTap;
+    this.speakerTap.input!.enabled = !s.attract;
+    this.pauseMenu.setVisible(s.paused);
+    for (const z of this.pauseZones) z.input!.enabled = s.paused;
+    if (s.paused) this.pauseHint.setText(PAUSE_HINTS[s.device]);
 
     const key = `${s.ships}:${s.pulses}`;
     if (key !== this.shown) {
@@ -134,6 +186,8 @@ export class HudScene extends Phaser.Scene {
     this.lamp(this.lamps.hound, LAMP.hound, s.hound === 'on' || (s.hound === 'blink' && blink(4)), COLORS.danger);
     this.lamp(this.lamps.taken, LAMP.taken, s.taken && blink(3), COLORS.amber);
 
+    if (pauseTap) this.dynamic.fillStyle(COLORS.ink).fillRect(PAUSE.x, PAUSE.y, 5, 14).fillRect(PAUSE.x + 9, PAUSE.y, 5, 14);
+    if (s.attract) return;
     // Speaker: three waves when on, a cross when muted. Drawn in 2 px blocks to match the game's pixels.
     const muted = this.registry.get(MUTED) === true;
     const g = this.dynamic.fillStyle(muted ? COLORS.danger : COLORS.ink);
@@ -151,8 +205,9 @@ export class HudScene extends Phaser.Scene {
     g.lineStyle(2, COLORS.line).strokeRect(-PANEL.w / 2, 0, PANEL.w, PANEL.h);
     const title = this.add.text(0, 14, 'GAME OVER', { fontFamily: FONT, fontSize: '32px', color: TEXT.danger }).setOrigin(0.5, 0);
     this.overScore = label(0, 58, '', TEXT.ink).setOrigin(0.5, 0);
+    this.overHi = label(0, 82, '', TEXT.dim).setOrigin(0.5, 0);
     const button = (x: number, text: string, act: () => void) => {
-      const b = this.add.text(x, 96, text, {
+      const b = this.add.text(x, 116, text, {
         fontFamily: FONT, fontSize: '16px', color: TEXT.amber, backgroundColor: '#0e1228', padding: { x: 16, y: 10 },
       }).setOrigin(0.5, 0).setInteractive({ useHandCursor: true });
       b.on('pointerdown', act);
@@ -160,7 +215,7 @@ export class HudScene extends Phaser.Scene {
     };
     const retry = button(-80, 'RETRY', () => ring().retry());
     const title2 = button(80, 'TITLE', () => ring().leave());
-    return this.add.container(W / 2, PANEL.y, [g, title, this.overScore, retry, title2]).setDepth(5).setVisible(false);
+    return this.add.container(W / 2, PANEL.y, [g, title, this.overScore, this.overHi, retry, title2]).setDepth(5).setVisible(false);
   }
 
   /**

@@ -43,6 +43,8 @@ Ten colonists walk the hull. Snatchers seek them out, drop onto them and climb s
 - **Don't dawdle.** Take too long on a wave and the HOUND lamp blinks: Hounds start warping in near you, one every 10 seconds, until the wave ends.
 - **Lose every colonist** and the ring goes dark: every Snatcher fuses into a Husk and new arrivals come as Husks. Waves 5, 10, 15 and so on bring back all ten colonists and the lights.
 - **Every 10,000 points** earns an extra ship and an extra pulse.
+- **High score:** your best is kept in this browser and shown on the title and at game over.
+- **Attract mode:** add `?attract` to the address for a silent demo that flies, rescues and fights by itself from a different wave each time, and ignores input. `?attract&seed=<n>` picks the starting wave.
 
 The scanner across the top shows the whole ring, centred on you, and an amber arrow on the screen's edge points to anyone being carried off out of sight.
 
@@ -68,11 +70,12 @@ The scanner across the top shows the whole ring, centred on you, and an amber ar
 | Climb and dive | ↑ ↓ or W S | Left stick or D-pad | Left stick |
 | Fire | Hold Space, J or left click | Hold A, RT or RB | Hold **FIRE** |
 | Pulse | Shift, K or right click | B, LT or LB | Tap **PULSE** |
+| Pause | P | Start | Tap **II** (top left, after the score) |
 | Sound on / off | M, or click the speaker (top right) | Y | Tap the speaker |
 | Start | Enter or Space, or click **START** | A or Start | Tap **START** |
-| Back to the title | Esc | Back | **TITLE** on the game-over screen |
+| Back to the title | Esc | Back | **TITLE** when paused or on the game-over screen |
 
-A weak push nudges the craft without turning it. Controllers show up once you press a button. On a phone, play in landscape: on wide screens the touch controls sit in the bars beside the game.
+A weak push nudges the craft without turning it. The game pauses itself if you switch away. Controllers show up once you press a button. On a phone, play in landscape: on wide screens the touch controls sit in the bars beside the game.
 
 ## Run it locally
 
@@ -100,11 +103,16 @@ src/
   touch.ts           on-screen stick and buttons for phones
   effects.ts         sparks, shockwaves, shake and screen wobble
   sfx.ts             procedural sound effects
+  hi.ts              the high score, kept in localStorage
+  attract.ts         the ?attract demo mode's settings
   scenes/            title screen, the ring and the HUD
 assets/sprites/      the game's 16 × 16 sprites
 design/              concept sheet and build plan
 tools/sprites.py     sprite search and export script
 tools/m*-test.mjs    headless Chrome checks for each milestone
+tools/cdp.mjs        shared headless Chrome harness for the newer tests
+tools/pause-hi-test.mjs  checks pause and the high score
+tools/attract-test.mjs   checks the ?attract demo
 ```
 
 ## Credits

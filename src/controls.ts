@@ -13,6 +13,8 @@ export interface ControlState {
   confirm: boolean;
   back: boolean;
   mute: boolean;
+  /** P on the keyboard, Start on a controller (Start also confirms, for menus). */
+  pause: boolean;
   device: Device;
 }
 
@@ -22,12 +24,12 @@ const TRIGGER_THRESHOLD = 0.3;
 const BTN = { A: 0, B: 1, Y: 3, LB: 4, RB: 5, BACK: 8, START: 9 } as const;
 const TRACKED = Object.values(BTN);
 
-type KeyName = 'LEFT' | 'RIGHT' | 'UP' | 'DOWN' | 'A' | 'D' | 'W' | 'S' | 'SPACE' | 'J' | 'SHIFT' | 'K' | 'M' | 'ENTER' | 'ESC';
+type KeyName = 'LEFT' | 'RIGHT' | 'UP' | 'DOWN' | 'A' | 'D' | 'W' | 'S' | 'SPACE' | 'J' | 'SHIFT' | 'K' | 'M' | 'ENTER' | 'ESC' | 'P';
 
 /**
- * One input layer. Keyboard: arrows or WASD fly, Space/J fire, Shift/K pulse, M sound, Enter start, Esc back.
+ * One input layer. Keyboard: arrows or WASD fly, Space/J fire, Shift/K pulse, M sound, P pause, Enter start, Esc back.
  * Mouse: left button fires, right button pulses. Controller: left stick or D-pad flies, A/RT/RB fire, B/LT/LB pulse,
- * Y sound, Start/A confirm, Back returns. Touch (src/touch.ts): left stick flies, FIRE holds, PULSE taps. The last
+ * Y sound, Start pause (and confirm), A confirm, Back returns. Touch (src/touch.ts): left stick flies, FIRE holds, PULSE taps. The last
  * device used decides the hints.
  * Construct one per scene.
  */
@@ -41,7 +43,7 @@ export class Controls {
   private readonly keys: Record<KeyName, Phaser.Input.Keyboard.Key>;
 
   constructor(private readonly scene: Phaser.Scene) {
-    this.keys = scene.input.keyboard!.addKeys('LEFT,RIGHT,UP,DOWN,A,D,W,S,SPACE,J,SHIFT,K,M,ENTER,ESC') as Controls['keys'];
+    this.keys = scene.input.keyboard!.addKeys('LEFT,RIGHT,UP,DOWN,A,D,W,S,SPACE,J,SHIFT,K,M,ENTER,ESC,P') as Controls['keys'];
     scene.input.mouse?.disableContextMenu();
     scene.input.on('pointerdown', (p: Phaser.Input.Pointer) => (this.device = p.wasTouch ? 'touch' : 'kbm'));
   }
@@ -69,7 +71,8 @@ export class Controls {
     let confirm = just(k.ENTER) || just(k.SPACE);
     let back = just(k.ESC);
     let mute = just(k.M);
-    if (move.x || move.y || fire || pulse || confirm || back || mute) this.device = 'kbm';
+    let pause = just(k.P);
+    if (move.x || move.y || fire || pulse || confirm || back || mute || pause) this.device = 'kbm';
 
     const pad = this.pad();
     const down = new Set(pad ? TRACKED.filter((i) => pad.buttons[i]?.pressed) : []);
@@ -93,6 +96,7 @@ export class Controls {
       confirm ||= edges.has(BTN.A) || edges.has(BTN.START);
       back ||= edges.has(BTN.BACK);
       mute ||= edges.has(BTN.Y);
+      pause ||= edges.has(BTN.START);
     }
     touchControls.render();
     const thumb = touchControls.stick();
@@ -105,6 +109,6 @@ export class Controls {
 
     const len = Math.hypot(move.x, move.y);
     if (len > 1) { move.x /= len; move.y /= len; }
-    return { move, fire, pulse, confirm, back, mute, device: this.device };
+    return { move, fire, pulse, confirm, back, mute, pause, device: this.device };
   }
 }
