@@ -26,7 +26,7 @@ Sentinel is an original arcade game inspired by the mechanics of Williams Electr
 - **Push the way you want to go.** No thrust or reverse buttons: push left or right to fly and face that way, and the view swings ahead of you when you turn.
 - **Rescue, not just shooting.** Every abduction is a race. Hit a Snatcher low and its catch drops safely; hit it high and you'd better be underneath.
 - **Warning before harm.** New hostiles fade in inside a closing ring, harmless until they're solid, and shooters flash white just before they fire.
-- **Sound with no audio files.** Sound effects are generated in code, sfxr style, when the game loads.
+- **Sound and music with no audio files.** Sound effects are generated in code, sfxr style, and the music is written as notes and rendered as it's needed: a title theme, a driving patrol, and a tenser piece for when the ring goes dark.
 
 ## How to play
 
@@ -103,6 +103,7 @@ src/
   touch.ts           on-screen stick and buttons for phones
   effects.ts         sparks, shockwaves, shake and screen wobble
   sfx.ts             procedural sound effects
+  music.ts           the music, written as notes and rendered in code
   hi.ts              the high score, kept in localStorage
   attract.ts         the ?attract demo mode's settings
   scenes/            title screen, the ring and the HUD

@@ -4,6 +4,7 @@ import { loadHi } from '../hi';
 import { CRAFT, FONT, MIRROR, RENDER_SCALE, SPRITES, TEXT, WIDTH, type SpriteKey } from '../config';
 import { Backdrop } from '../backdrop';
 import { Controls } from '../controls';
+import { playMusic } from '../music';
 import { playSound, registerSounds, restoreMute, toggleMute } from '../sfx';
 import { fitCamera } from '../view';
 import { wrap } from '../world';
@@ -36,6 +37,7 @@ export class TitleScene extends Phaser.Scene {
     fitCamera(this, RENDER_SCALE);
     registerSounds(this);
     restoreMute(this);
+    playMusic(this, 'title');
     this.cameras.main.fadeIn(250);
     this.backdrop = new Backdrop(this, 0);
     // Colonists, mines and HUD icons play at half size; 0.5 is still pixel-exact on the 4x canvas.

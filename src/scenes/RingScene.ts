@@ -13,6 +13,7 @@ import {
 import { Effects } from '../effects';
 import { loadHi, saveHi } from '../hi';
 import { touchControls } from '../touch';
+import { duckMusic, pauseMusic, playMusic, stopMusic } from '../music';
 import { playSound, toggleMute, type SoundName } from '../sfx';
 import { bonusFor, firePaceOf, minelayersIn, paceOf, restores, snatchersIn } from '../waves';
 import { fitCamera } from '../view';
@@ -176,6 +177,7 @@ export class RingScene extends Phaser.Scene {
       this.add.text(WIDTH / 2, y, '', { fontFamily: FONT, fontSize: `${size}px`, color, align: 'center' }).setOrigin(0.5).setDepth(5);
     this.banner = { title: bannerText(84, 16, TEXT.amber), sub: bannerText(102, 8, TEXT.ink), life: 0 };
     this.startWave(demo ? 1 + (this.demoSeed % 4) : 1);
+    playMusic(this, this.dark ? 'dark' : 'ring');
     if (demo) {
       // A demo starts a little way behind the first Snatcher, so the fight is on screen at once.
       const first = this.hostiles.find((e) => e.kind === 'snatcher') ?? this.hostiles[0];
@@ -204,6 +206,7 @@ export class RingScene extends Phaser.Scene {
     if (on) this.tweens.pauseAll();
     else this.tweens.resumeAll();
     touchControls.show(!on);
+    pauseMusic(on);
     this.sfx('catch');
   }
 
@@ -400,6 +403,7 @@ export class RingScene extends Phaser.Scene {
     const bonus = bonusFor(this.wave, alive);
     this.gain(bonus);
     this.sfx('waveClear');
+    duckMusic(1800);
     this.showBanner(`WAVE ${this.wave} CLEARED`, `BONUS  ${alive} × ${bonusFor(this.wave, 1)}  =  ${bonus}`, WAVES.intermission);
     this.between = WAVES.intermission;
     this.nextHound = Infinity;
@@ -414,6 +418,7 @@ export class RingScene extends Phaser.Scene {
       if (this.onScreen(e.x)) this.fx.pop(this.sx(e.x), e.y, [...KIND_COLORS.husk], 10);
     }
     this.sfx('dark');
+    playMusic(this, 'dark');
     this.fx.flash(350, 0.6);
     this.fx.shake(4);
     this.fx.kick(0.08, 60, 0.02);
@@ -423,6 +428,7 @@ export class RingScene extends Phaser.Scene {
   /** Every 5th wave: all ten colonists back on the hull, and the lights on. */
   private restore() {
     this.backdrop.setDark(false);
+    playMusic(this, 'ring');
     this.craft.carry = undefined;
     this.colonists.forEach((c) => c.img.destroy());
     this.colonists = createColonists(this);
@@ -692,6 +698,7 @@ export class RingScene extends Phaser.Scene {
       this.over = 0;
       this.newHi = saveHi(this.score);
       touchControls.show(false);
+      stopMusic();
       this.time.delayedCall(900, () => this.sfx('gameOver'));
     }
   }
@@ -802,6 +809,7 @@ export class RingScene extends Phaser.Scene {
     this.ships += extra;
     this.pulses += extra;
     this.sfx('extraShip');
+    duckMusic(1200);
     const c = this.craft, text = this.add.text(0, c.y - 20, '+SHIP +PULSE', { fontFamily: FONT, fontSize: '8px', color: TEXT.beam })
       .setOrigin(0.5).setDepth(11);
     this.popups.push({ x: c.x, life: 1.5, text });
